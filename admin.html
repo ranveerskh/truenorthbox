@@ -9,74 +9,104 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
+      font-family: 'Segoe UI', sans-serif;
+      background: #eef2f5;
+      margin: 0;
+      padding: 0;
     }
-    h1, h2 {
+    header {
+      background-color: #2f855a;
+      color: white;
+      padding: 20px;
       text-align: center;
+      font-size: 1.5rem;
     }
-    form, .product-list, .category-panel {
-      max-width: 700px;
+    .container {
+      max-width: 960px;
       margin: 20px auto;
-      background: #fff;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      margin-bottom: 20px;
+      text-align: center;
     }
     input, textarea, select, button {
       display: block;
       width: 100%;
       margin: 10px 0;
       padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
     .product-item, .category-item {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-top: 10px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-top: 15px;
       border-radius: 6px;
-      background: #fff;
+      background: #f9f9f9;
+    }
+    .product-item img {
+      max-width: 100px;
+      border-radius: 4px;
+      margin-top: 10px;
     }
     .actions button {
       margin-right: 10px;
+      background: #2f855a;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .actions button:hover {
+      opacity: 0.9;
     }
     .top-links {
       text-align: center;
-      margin-bottom: 20px;
+      margin-top: 10px;
     }
     .top-links a {
       margin: 0 10px;
       text-decoration: none;
-      color: blue;
+      color: #2f855a;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Admin Panel - Manage Products</h1>
+  <header>Admin Panel - TrueNorthBox</header>
 
   <div class="top-links">
     <a href="admin-orders.html">View Orders</a>
-    <a href="https://postimages.org/" target="_blank">Image Upload (PostImages)</a>
+    <a href="https://postimages.org/" target="_blank">Upload Image</a>
   </div>
 
-  <form id="product-form">
-    <input type="text" id="name" placeholder="Product Name" required>
-    <input type="number" id="price" placeholder="Price" required>
-    <input type="text" id="sku" placeholder="SKU" required>
-    <input type="text" id="category" placeholder="Category" required>
-    <input type="text" id="imageUrl" placeholder="Image URL" required>
-    <textarea id="description" placeholder="Description"></textarea>
-    <input type="number" id="stock" placeholder="Stock" required>
-    <label><input type="checkbox" id="isFeatured"> Feature this product</label>
-    <label><input type="checkbox" id="isBoxEligible"> Include in Build-A-Box</label>
-    <button type="submit">Save Product</button>
-  </form>
+  <div class="container">
+    <h2>Add / Edit Product</h2>
+    <form id="product-form">
+      <input type="text" id="name" placeholder="Product Name" required>
+      <input type="number" id="price" placeholder="Price" required>
+      <input type="text" id="sku" placeholder="SKU" required>
+      <input type="text" id="category" placeholder="Category" required>
+      <input type="text" id="imageUrl" placeholder="Image URL" required>
+      <textarea id="description" placeholder="Description"></textarea>
+      <input type="number" id="stock" placeholder="Stock" required>
+      <label><input type="checkbox" id="isFeatured"> Feature this product</label>
+      <label><input type="checkbox" id="isBoxEligible"> Include in Build-A-Box</label>
+      <button type="submit">Save Product</button>
+    </form>
+  </div>
 
-  <div class="product-list" id="product-list">
+  <div class="container" id="product-list">
     <h2>Existing Products</h2>
   </div>
 
-  <div class="category-panel" id="category-panel">
+  <div class="container" id="category-panel">
     <h2>Categories</h2>
     <div id="category-list"></div>
   </div>
@@ -133,10 +163,10 @@
         div.innerHTML = `
           <strong>${data.name}</strong> (${data.category})<br>
           Price: $${data.price} | SKU: ${data.sku} | Stock: ${data.stock}<br>
-          <img src="${data.imageUrl}" style="max-width:100px"><br>
+          <img src="${data.imageUrl}" alt="${data.name}"><br>
           <div class="actions">
-            <button onclick="editProduct('${doc.id}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">Edit</button>
-            <button onclick="deleteProduct('${doc.id}')">Delete</button>
+            <button onclick='editProduct("${doc.id}", ${JSON.stringify(data).replace(/'/g, "\'").replace(/"/g, '&quot;')})'>Edit</button>
+            <button onclick='deleteProduct("${doc.id}")'>Delete</button>
           </div>
         `;
         productList.appendChild(div);
