@@ -57,6 +57,15 @@
       font-size: 1.5rem;
       font-weight: bold;
     }
+    textarea {
+      width: 100%;
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+      font-size: 1rem;
+    }
     .add-to-cart {
       background: #2f855a;
       color: white;
@@ -165,11 +174,12 @@
           <h2>${data.name}</h2>
           <p class="price">$${data.price}</p>
           <p>${data.description || "No description available."}</p>
+          <textarea id="note" maxlength="500" placeholder="Write a custom note to the recipient (max 500 characters)"></textarea>
           <button class="add-to-cart" onclick="addToCart('${productId}', '${data.name}', ${data.price}, '${data.imageUrl}')">Add to Cart</button>
         </div>
       `;
       loadRecommendations();
-      loadReviews(); // Optional placeholder
+      loadReviews(); // Placeholder reviews
     }
 
     async function loadRecommendations() {
@@ -199,10 +209,17 @@
     }
 
     window.addToCart = function(id, name, price, imageUrl) {
+      const note = document.getElementById('note')?.value?.trim().slice(0, 500) || "";
       const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      cart.push({ id, name, price, imageUrl, quantity: 1 });
+      const existing = cart.find(item => item.id === id);
+      if (existing) {
+        existing.quantity += 1;
+        existing.note = note;
+      } else {
+        cart.push({ id, name, price, imageUrl, quantity: 1, note });
+      }
       localStorage.setItem('cart', JSON.stringify(cart));
-      alert("Added to cart!");
+      alert("Added to cart with your note!");
     }
 
     loadProduct();
