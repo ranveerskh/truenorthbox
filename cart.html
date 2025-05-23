@@ -69,7 +69,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -186,6 +186,8 @@
       <p>Tax (13%): $${tax.toFixed(2)}</p>
       <p><strong>Total: $${total.toFixed(2)}</strong></p>
     `;
+
+    saveAbandonedCartLive(); // Save/update abandoned cart every time cart updates
   }
 
   window.updateQuantity = (index, value) => {
@@ -247,9 +249,28 @@
     });
   }
 
+  async function saveAbandonedCartLive() {
+    const email = localStorage.getItem('email') || '';
+    const phone = localStorage.getItem('phone') || '';
+    const id = localStorage.getItem('abandoned_cart_id') || `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+    const data = {
+      cart,
+      email,
+      phone,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'abandonedCarts', id), data);
+      localStorage.setItem('abandoned_cart_id', id);
+    } catch (err) {
+      console.error('Failed to save abandoned cart:', err);
+    }
+  }
+
   shippingMethodEl.addEventListener('change', renderCart);
 
-  // Get user's location once on load
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(async (position) => {
       const lat = position.coords.latitude;
