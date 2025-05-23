@@ -31,6 +31,7 @@
   </style>
 </head>
 <body>
+
 <header>
   <div><strong>True North Box</strong></div>
   <div>
@@ -38,8 +39,11 @@
     <a href="collections.html">Collections</a>
   </div>
 </header>
+
 <h1>Your Cart</h1>
+
 <div class="cart-container" id="cart-items"></div>
+
 <div class="cart-container">
   <label for="shipping-method">Shipping Method:</label>
   <select id="shipping-method" onchange="renderCart()">
@@ -48,20 +52,25 @@
     <option value="expedited">Expedited ($35)</option>
     <option value="local">Local ($10 / Free over $100) [London ON Only]</option>
   </select>
+
   <div class="input-group">
     <input type="text" id="coupon-code" placeholder="Enter Coupon or Gift Card Code">
     <button onclick="applyCouponOrGiftCard()">Apply</button>
   </div>
 </div>
+
 <div class="cart-container summary" id="cart-summary"></div>
 <div class="cart-container"><button onclick="proceedToCheckout()">Proceed to Checkout</button></div>
+
 <div class="cart-container recommendations">
   <h2>Recommended for You</h2>
   <div class="recommend-grid" id="recommend-grid"></div>
 </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
   import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
     authDomain: "truenrothbox.firebaseapp.com",
@@ -70,40 +79,51 @@
     messagingSenderId: "103087965950",
     appId: "1:103087965950:web:cc552e40fc69a3d29047af"
   };
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
   const cartItemsEl = document.getElementById('cart-items');
   const cartSummaryEl = document.getElementById('cart-summary');
   const shippingMethodEl = document.getElementById('shipping-method');
+
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
   let couponDiscount = 0;
   let giftCardAmount = 0;
+
   async function applyCouponOrGiftCard() {
     const code = document.getElementById('coupon-code').value.trim();
     if (!code) return;
+
     const couponDoc = await getDoc(doc(db, 'coupons', code));
     const giftDoc = await getDoc(doc(db, 'giftcards', code));
+
     if (couponDoc.exists()) {
       couponDiscount = couponDoc.data().discount || 0;
       alert('Coupon applied!');
     } else {
       couponDiscount = 0;
     }
+
     if (giftDoc.exists()) {
       giftCardAmount = giftDoc.data().amount || 0;
       alert('Gift card redeemed!');
     } else {
       giftCardAmount = 0;
     }
+
     if (!couponDoc.exists() && !giftDoc.exists()) {
       alert('Invalid code.');
     }
+
     renderCart();
   }
+
   function getLocalShippingStatus() {
     const userLocation = localStorage.getItem('user_city') || 'London';
     return userLocation.toLowerCase().includes('london');
   }
+
   function getShippingLabel(type, isLocal) {
     const map = {
       regular: 'Regular',
@@ -113,19 +133,23 @@
     };
     return map[type] || type;
   }
+
   function renderCart() {
     cartItemsEl.innerHTML = '';
     let subtotal = 0;
+
     if (cart.length === 0) {
       cartItemsEl.innerHTML = '<p>Your cart is empty.</p>';
       document.querySelector('button').style.display = 'none';
       cartSummaryEl.innerHTML = '';
       return;
     }
+
     cart.forEach((item, index) => {
       const quantity = item.quantity || 1;
       const itemTotal = quantity * item.price;
       subtotal += itemTotal;
+
       const div = document.createElement('div');
       div.className = 'item';
       div.innerHTML = `
@@ -142,6 +166,7 @@
       `;
       cartItemsEl.appendChild(div);
     });
+
     let shipping = 0;
     const type = shippingMethodEl.value;
     const isLocal = getLocalShippingStatus();
@@ -149,8 +174,10 @@
     if (type === 'fast') shipping = subtotal > 200 ? 0 : 15;
     if (type === 'expedited') shipping = 35;
     if (type === 'local') shipping = isLocal ? (subtotal > 100 ? 0 : 10) : 0;
+
     const tax = (subtotal - couponDiscount - giftCardAmount + shipping) * 0.13;
     const total = subtotal - couponDiscount - giftCardAmount + shipping + tax;
+
     cartSummaryEl.innerHTML = `
       <p>Subtotal: $${subtotal.toFixed(2)}</p>
       <p>Shipping (${getShippingLabel(type, isLocal)}): $${shipping.toFixed(2)}</p>
@@ -160,19 +187,23 @@
       <p><strong>Total: $${total.toFixed(2)}</strong></p>
     `;
   }
+
   window.updateQuantity = (index, value) => {
     cart[index].quantity = parseInt(value);
     localStorage.setItem('cart', JSON.stringify(cart));
     renderCart();
   }
+
   window.removeItem = (index) => {
     cart.splice(index, 1);
     localStorage.setItem('cart', JSON.stringify(cart));
     renderCart();
   }
+
   window.proceedToCheckout = () => {
     window.location.href = 'checkout.html';
   }
+
   async function loadRecommendations() {
     const q = query(collection(db, "products"), where("isFeatured", "==", true));
     const snapshot = await getDocs(q);
@@ -190,8 +221,10 @@
       grid.appendChild(box);
     });
   }
+
   renderCart();
   loadRecommendations();
 </script>
+
 </body>
 </html>
