@@ -47,6 +47,14 @@
       font-size: 1rem;
       cursor: pointer;
     }
+    .warning {
+      background: #fff8c4;
+      color: #444;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
@@ -85,23 +93,25 @@
   const db = getFirestore(app);
 
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const shippingCost = parseFloat(localStorage.getItem('shipping_cost')) || 0;
-  const shippingMethod = localStorage.getItem('shipping_method') || 'Standard';
-  let couponDiscount = 0;
-  let giftCardAmount = 0;
-  let subtotal = 0;
+  const shippingCost = parseFloat(localStorage.getItem('shipping_cost'));
+  const shippingMethod = localStorage.getItem('shipping_method');
 
+  const couponDiscount = 0;
+  const giftCardAmount = 0;
+  let subtotal = 0;
   cart.forEach(item => {
     subtotal += (item.quantity || 1) * item.price;
   });
 
-  const tax = (subtotal - couponDiscount - giftCardAmount + shippingCost) * 0.13;
-  const total = subtotal - couponDiscount - giftCardAmount + shippingCost + tax;
+  const shippingMissing = isNaN(shippingCost);
+  const tax = (subtotal - couponDiscount - giftCardAmount + (shippingMissing ? 0 : shippingCost)) * 0.13;
+  const total = subtotal - couponDiscount - giftCardAmount + (shippingMissing ? 0 : shippingCost) + tax;
 
   const summaryEl = document.getElementById('order-summary');
   summaryEl.innerHTML = `
+    ${shippingMissing ? '<div class="warning">⚠️ Shipping details not found. Please go back to the cart and select a shipping option.</div>' : ''}
     <p>Subtotal: $${subtotal.toFixed(2)}</p>
-    <p>Shipping (${shippingMethod}): $${shippingCost.toFixed(2)}</p>
+    <p>Shipping (${shippingMethod || 'N/A'}): $${(shippingMissing ? 0 : shippingCost).toFixed(2)}</p>
     <p>Coupon Discount: -$${couponDiscount.toFixed(2)}</p>
     <p>Gift Card: -$${giftCardAmount.toFixed(2)}</p>
     <p>Tax (13%): $${tax.toFixed(2)}</p>
@@ -110,6 +120,11 @@
   `;
 
   async function placeOrder() {
+    if (cart.length === 0) {
+      alert('Your cart is empty.');
+      return;
+    }
+
     const order = {
       firstName: document.getElementById('firstName').value,
       lastName: document.getElementById('lastName').value,
@@ -121,8 +136,8 @@
       country: document.getElementById('country').value,
       postalCode: document.getElementById('postalCode').value,
       paymentMethod: 'Cash on Delivery',
-      shippingMethod,
-      shippingCost,
+      shippingMethod: shippingMethod || 'N/A',
+      shippingCost: shippingMissing ? 0 : shippingCost,
       couponDiscount,
       giftCardAmount,
       tax: parseFloat(tax.toFixed(2)),
@@ -137,6 +152,8 @@
       await addDoc(collection(db, 'orders'), order);
       alert('Order placed successfully!');
       localStorage.removeItem('cart');
+      localStorage.removeItem('shipping_cost');
+      localStorage.removeItem('shipping_method');
       window.location.href = 'index.html';
     } catch (err) {
       console.error('Error placing order', err);
