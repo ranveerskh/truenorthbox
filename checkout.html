@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - True North Box</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+    }
+    #cod-info {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    #cod-info.available {
+      color: green;
+    }
+    #cod-info.unavailable {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Checkout</h2>
+    <input type="text" id="name" placeholder="Your Name">
+    <input type="text" id="address" placeholder="Delivery Address">
+    <input type="text" id="postal" placeholder="Postal Code" oninput="checkPostalCode()">
+    <div id="cod-info"></div>
+
+    <select id="payment-method">
+      <option value="online">Online Payment</option>
+      <option value="cod" disabled>Cash on Delivery (COD)</option>
+    </select>
+
+    <button onclick="submitOrder()">Place Order</button>
+  </div>
+
+  <script>
+    const codAvailableZips = ['N6A', 'N6B', 'N6E', 'N5Y']; // Add more serviceable postal code prefixes here
+
+    function checkPostalCode() {
+      const code = document.getElementById('postal').value.trim().toUpperCase().slice(0, 3);
+      const codInfo = document.getElementById('cod-info');
+      const codOption = document.getElementById('payment-method').querySelector('[value="cod"]');
+
+      if (codAvailableZips.includes(code)) {
+        codInfo.textContent = "Cash on Delivery is available in your area.";
+        codInfo.className = "available";
+        codOption.disabled = false;
+      } else {
+        codInfo.textContent = "COD is not available for your area.";
+        codInfo.className = "unavailable";
+        codOption.disabled = true;
+      }
+    }
+
+    function submitOrder() {
+      const name = document.getElementById('name').value;
+      const address = document.getElementById('address').value;
+      const postal = document.getElementById('postal').value;
+      const method = document.getElementById('payment-method').value;
+
+      if (!name || !address || !postal) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      alert(`Order placed successfully! Payment method: ${method}`);
+      // Later: Save order to Firestore
+    }
+  </script>
+</body>
+</html>
