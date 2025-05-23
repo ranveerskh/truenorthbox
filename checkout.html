@@ -108,6 +108,24 @@
       alert('Order placed successfully!');
       window.location.href = 'index.html';
     }
+
+    // Save cart abandonment if user leaves page with filled data but doesn't submit
+    window.addEventListener('beforeunload', () => {
+      const name = document.getElementById('name').value;
+      const address = document.getElementById('address').value;
+      const postal = document.getElementById('postal').value;
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+      if (cart.length > 0 && (!sessionStorage.getItem('order_submitted'))) {
+        db.collection("abandoned_carts").add({
+          name,
+          address,
+          postal,
+          cart,
+          abandonedAt: new Date().toISOString()
+        });
+      }
+    });
   </script>
 </body>
 </html>
