@@ -13,11 +13,11 @@
       padding: 20px;
       background: #f4f4f4;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
     }
-    form, .product-list {
-      max-width: 600px;
+    form, .product-list, .category-panel {
+      max-width: 700px;
       margin: 20px auto;
       background: #fff;
       padding: 20px;
@@ -30,7 +30,7 @@
       margin: 10px 0;
       padding: 10px;
     }
-    .product-item {
+    .product-item, .category-item {
       border: 1px solid #ccc;
       padding: 10px;
       margin-top: 10px;
@@ -40,10 +40,24 @@
     .actions button {
       margin-right: 10px;
     }
+    .top-links {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .top-links a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: blue;
+    }
   </style>
 </head>
 <body>
   <h1>Admin Panel - Manage Products</h1>
+
+  <div class="top-links">
+    <a href="admin-orders.html">View Orders</a>
+    <a href="https://postimages.org/" target="_blank">Image Upload (PostImages)</a>
+  </div>
 
   <form id="product-form">
     <input type="text" id="name" placeholder="Product Name" required>
@@ -59,8 +73,12 @@
   </form>
 
   <div class="product-list" id="product-list">
-    <h3>Existing Products</h3>
-    <!-- Dynamic product items appear here -->
+    <h2>Existing Products</h2>
+  </div>
+
+  <div class="category-panel" id="category-panel">
+    <h2>Categories</h2>
+    <div id="category-list"></div>
   </div>
 
   <script>
@@ -72,12 +90,13 @@
       messagingSenderId: "103087965950",
       appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const form = document.getElementById('product-form');
     const productList = document.getElementById('product-list');
+    const categoryList = document.getElementById('category-list');
+    let editingId = null;
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -92,16 +111,23 @@
         isFeatured: form.isFeatured.checked,
         isBoxEligible: form.isBoxEligible.checked
       };
-      await db.collection('products').add(data);
+      if (editingId) {
+        await db.collection('products').doc(editingId).update(data);
+        editingId = null;
+      } else {
+        await db.collection('products').add(data);
+      }
       form.reset();
       loadProducts();
     });
 
     async function loadProducts() {
-      productList.innerHTML = '<h3>Existing Products</h3>';
+      productList.innerHTML = '<h2>Existing Products</h2>';
       const snapshot = await db.collection('products').get();
+      const categories = new Set();
       snapshot.forEach(doc => {
         const data = doc.data();
+        categories.add(data.category);
         const div = document.createElement('div');
         div.className = 'product-item';
         div.innerHTML = `
@@ -109,15 +135,65 @@
           Price: $${data.price} | SKU: ${data.sku} | Stock: ${data.stock}<br>
           <img src="${data.imageUrl}" style="max-width:100px"><br>
           <div class="actions">
+            <button onclick="editProduct('${doc.id}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">Edit</button>
             <button onclick="deleteProduct('${doc.id}')">Delete</button>
           </div>
         `;
         productList.appendChild(div);
       });
+      loadCategories([...categories]);
     }
 
     async function deleteProduct(id) {
       await db.collection('products').doc(id).delete();
+      loadProducts();
+    }
+
+    function editProduct(id, data) {
+      editingId = id;
+      form.name.value = data.name;
+      form.price.value = data.price;
+      form.sku.value = data.sku;
+      form.category.value = data.category;
+      form.imageUrl.value = data.imageUrl;
+      form.description.value = data.description;
+      form.stock.value = data.stock;
+      form.isFeatured.checked = data.isFeatured;
+      form.isBoxEligible.checked = data.isBoxEligible;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function loadCategories(categories) {
+      categoryList.innerHTML = '';
+      categories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'category-item';
+        div.innerHTML = `
+          <strong>${cat}</strong>
+          <button onclick="renameCategory('${cat}')">Rename</button>
+          <button onclick="deleteCategory('${cat}')">Delete</button>
+        `;
+        categoryList.appendChild(div);
+      });
+    }
+
+    async function deleteCategory(category) {
+      const confirmDelete = confirm(`Delete all products in category: ${category}?`);
+      if (!confirmDelete) return;
+      const snapshot = await db.collection('products').where('category', '==', category).get();
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      loadProducts();
+    }
+
+    async function renameCategory(oldCat) {
+      const newCat = prompt("Enter new category name:", oldCat);
+      if (!newCat || newCat === oldCat) return;
+      const snapshot = await db.collection('products').where('category', '==', oldCat).get();
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.update(doc.ref, { category: newCat }));
+      await batch.commit();
       loadProducts();
     }
 
