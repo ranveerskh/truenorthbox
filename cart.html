@@ -44,9 +44,6 @@
       border-bottom: 1px solid #ddd;
       padding: 15px 0;
     }
-    .item:last-child {
-      border-bottom: none;
-    }
     .item img {
       width: 100px;
       height: 100px;
@@ -227,7 +224,7 @@
     }
 
     window.proceedToCheckout = () => {
-      alert("Checkout coming soon.");
+      window.location.href = 'checkout.html';
     }
 
     async function loadRecommendations() {
