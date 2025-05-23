@@ -6,37 +6,55 @@
   <title>Checkout - True North Box</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background: #f4f4f4;
+      margin: 0;
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
       background: white;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
     }
     input, select, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 15px;
-      border-radius: 6px;
       border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
     }
     button {
       background: #2f855a;
       color: white;
       font-weight: bold;
       cursor: pointer;
+      border: none;
     }
-    h2 {
-      text-align: center;
+    .summary-box {
+      margin-top: 30px;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
     }
-    .cod-note {
-      color: #2f855a;
-      font-weight: bold;
+    .summary-box h3 {
+      margin-top: 0;
+    }
+    .summary-box p {
+      font-size: 1.1rem;
+      margin: 8px 0;
+    }
+    .note {
+      font-size: 0.9rem;
+      color: #555;
       margin-top: 10px;
     }
   </style>
@@ -53,7 +71,15 @@
     <input type="text" id="province" placeholder="Province">
     <input type="text" id="country" placeholder="Country">
     <input type="text" id="postalCode" placeholder="Postal Code">
-    <div class="cod-note">Only Cash on Delivery (COD) available.</div>
+
+    <div class="summary-box" id="payment-summary">
+      <h3>Payment Summary</h3>
+      <p id="subtotal">Subtotal: $0.00</p>
+      <p id="tax">Tax (13%): $0.00</p>
+      <p><strong id="total">Total to be Paid (COD): $0.00</strong></p>
+      <div class="note">Note: Cash on Delivery (COD) only. You will receive an email confirmation once the order is placed.</div>
+    </div>
+
     <button onclick="submitOrder()">Place Order</button>
   </div>
 
@@ -74,6 +100,16 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
+    function updateSummary() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      let subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+      let tax = subtotal * 0.13;
+      let total = subtotal + tax;
+      document.getElementById('subtotal').textContent = `Subtotal: $${subtotal.toFixed(2)}`;
+      document.getElementById('tax').textContent = `Tax (13%): $${tax.toFixed(2)}`;
+      document.getElementById('total').textContent = `Total to be Paid (COD): $${total.toFixed(2)}`;
+    }
 
     async function submitOrder() {
       const firstName = document.getElementById('firstName').value.trim();
@@ -115,7 +151,7 @@
 
       await addDoc(collection(db, 'orders'), order);
       localStorage.removeItem('cart');
-      alert('Order placed successfully! You will receive a WhatsApp confirmation.');
+      alert('Order placed successfully! Confirmation will be sent via email.');
       window.location.href = 'index.html';
     }
 
@@ -128,6 +164,8 @@
         });
       }
     });
+
+    updateSummary();
   </script>
 </body>
 </html>
