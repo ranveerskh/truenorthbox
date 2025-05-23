@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - TrueNorthBox</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    form, .product-list {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, textarea, select, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+    }
+    .product-item {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .actions button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel - Manage Products</h1>
+
+  <form id="product-form">
+    <input type="text" id="name" placeholder="Product Name" required>
+    <input type="number" id="price" placeholder="Price" required>
+    <input type="text" id="sku" placeholder="SKU" required>
+    <input type="text" id="category" placeholder="Category" required>
+    <input type="text" id="imageUrl" placeholder="Image URL" required>
+    <textarea id="description" placeholder="Description"></textarea>
+    <input type="number" id="stock" placeholder="Stock" required>
+    <label><input type="checkbox" id="isFeatured"> Feature this product</label>
+    <label><input type="checkbox" id="isBoxEligible"> Include in Build-A-Box</label>
+    <button type="submit">Save Product</button>
+  </form>
+
+  <div class="product-list" id="product-list">
+    <h3>Existing Products</h3>
+    <!-- Dynamic product items appear here -->
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.firebasestorage.app",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const form = document.getElementById('product-form');
+    const productList = document.getElementById('product-list');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        name: form.name.value,
+        price: parseFloat(form.price.value),
+        sku: form.sku.value,
+        category: form.category.value,
+        imageUrl: form.imageUrl.value,
+        description: form.description.value,
+        stock: parseInt(form.stock.value),
+        isFeatured: form.isFeatured.checked,
+        isBoxEligible: form.isBoxEligible.checked
+      };
+      await db.collection('products').add(data);
+      form.reset();
+      loadProducts();
+    });
+
+    async function loadProducts() {
+      productList.innerHTML = '<h3>Existing Products</h3>';
+      const snapshot = await db.collection('products').get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement('div');
+        div.className = 'product-item';
+        div.innerHTML = `
+          <strong>${data.name}</strong> (${data.category})<br>
+          Price: $${data.price} | SKU: ${data.sku} | Stock: ${data.stock}<br>
+          <img src="${data.imageUrl}" style="max-width:100px"><br>
+          <div class="actions">
+            <button onclick="deleteProduct('${doc.id}')">Delete</button>
+          </div>
+        `;
+        productList.appendChild(div);
+      });
+    }
+
+    async function deleteProduct(id) {
+      await db.collection('products').doc(id).delete();
+      loadProducts();
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>
