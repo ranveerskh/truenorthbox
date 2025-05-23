@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ambassador Signup - True North Box</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .form-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+    }
+    h2 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-box">
+    <h2>Become an Ambassador</h2>
+    <input type="text" id="name" placeholder="Your Name">
+    <input type="email" id="email" placeholder="Your Email">
+    <button onclick="registerAmbassador()">Register</button>
+    <p id="result"></p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.firebasestorage.app",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function generateCode(name) {
+      return name.toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 1000);
+    }
+
+    async function registerAmbassador() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const code = generateCode(name);
+
+      if (!name || !email) return alert("Please fill in all fields.");
+
+      await db.collection('ambassadors').add({ name, email, code, createdAt: new Date().toISOString() });
+      document.getElementById('result').textContent = `Thanks for registering! Your referral code: ${code}`;
+    }
+  </script>
+</body>
+</html>
