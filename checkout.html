@@ -51,8 +51,21 @@
     <button onclick="submitOrder()">Place Order</button>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
   <script>
-    const codAvailableZips = ['N6A', 'N6B', 'N6E', 'N5Y']; // Add more serviceable postal code prefixes here
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.firebasestorage.app",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const codAvailableZips = ['N6A', 'N6B', 'N6E', 'N5Y'];
 
     function checkPostalCode() {
       const code = document.getElementById('postal').value.trim().toUpperCase().slice(0, 3);
@@ -70,19 +83,30 @@
       }
     }
 
-    function submitOrder() {
+    async function submitOrder() {
       const name = document.getElementById('name').value;
       const address = document.getElementById('address').value;
       const postal = document.getElementById('postal').value;
       const method = document.getElementById('payment-method').value;
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
 
       if (!name || !address || !postal) {
         alert("Please fill in all fields.");
         return;
       }
 
-      alert(`Order placed successfully! Payment method: ${method}`);
-      // Later: Save order to Firestore
+      await db.collection("orders").add({
+        name,
+        address,
+        postal,
+        method,
+        items: cart,
+        createdAt: new Date().toISOString()
+      });
+
+      localStorage.removeItem('cart');
+      alert('Order placed successfully!');
+      window.location.href = 'index.html';
     }
   </script>
 </body>
