@@ -1,171 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout - True North Box</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: Arial, sans-serif;
       background: #f4f4f4;
-      margin: 0;
       padding: 20px;
     }
     .container {
-      max-width: 700px;
+      max-width: 600px;
       margin: auto;
       background: white;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     h2 {
       text-align: center;
       margin-bottom: 20px;
     }
-    input, select, button {
+    input, select {
       width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .summary {
+      margin-top: 20px;
       font-size: 1rem;
+      border-top: 1px solid #ccc;
+      padding-top: 15px;
+    }
+    .summary p {
+      margin: 5px 0;
     }
     button {
-      background: #2f855a;
+      background: #4CAF50;
       color: white;
-      font-weight: bold;
-      cursor: pointer;
+      padding: 10px;
       border: none;
-    }
-    .summary-box {
-      margin-top: 30px;
-      background: #f9f9f9;
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-    .summary-box h3 {
-      margin-top: 0;
-    }
-    .summary-box p {
-      font-size: 1.1rem;
-      margin: 8px 0;
-    }
-    .note {
-      font-size: 0.9rem;
-      color: #555;
-      margin-top: 10px;
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Checkout</h2>
-    <input type="text" id="firstName" placeholder="First Name">
-    <input type="text" id="lastName" placeholder="Last Name">
-    <input type="email" id="email" placeholder="Email">
-    <input type="tel" id="phone" placeholder="Phone Number">
-    <input type="text" id="address" placeholder="Address">
-    <input type="text" id="city" placeholder="City">
-    <input type="text" id="province" placeholder="Province">
-    <input type="text" id="country" placeholder="Country">
-    <input type="text" id="postalCode" placeholder="Postal Code">
 
-    <div class="summary-box" id="payment-summary">
-      <h3>Payment Summary</h3>
-      <p id="subtotal">Subtotal: $0.00</p>
-      <p id="tax">Tax (13%): $0.00</p>
-      <p><strong id="total">Total to be Paid (COD): $0.00</strong></p>
-      <div class="note">Note: Cash on Delivery (COD) only. You will receive an email confirmation once the order is placed.</div>
-    </div>
+<div class="container">
+  <h2>Checkout</h2>
 
-    <button onclick="submitOrder()">Place Order</button>
-  </div>
+  <input type="text" id="firstName" placeholder="First Name" required />
+  <input type="text" id="lastName" placeholder="Last Name" required />
+  <input type="email" id="email" placeholder="Email" required />
+  <input type="tel" id="phone" placeholder="Phone" required />
+  <input type="text" id="address" placeholder="Street Address" required />
+  <input type="text" id="city" placeholder="City" required />
+  <input type="text" id="province" placeholder="Province" required />
+  <input type="text" id="country" placeholder="Country" value="Canada" required />
+  <input type="text" id="postalCode" placeholder="Postal Code" required />
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js';
-    import {
-      getFirestore, collection, addDoc, serverTimestamp
-    } from 'https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js';
+  <div class="summary" id="order-summary"></div>
+  <button onclick="placeOrder()">Place Order</button>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
-      authDomain: "truenrothbox.firebaseapp.com",
-      projectId: "truenrothbox",
-      storageBucket: "truenrothbox.firebasestorage.app",
-      messagingSenderId: "103087965950",
-      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.firebasestorage.app",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const shippingCost = parseFloat(localStorage.getItem('shipping_cost')) || 0;
+  const shippingMethod = localStorage.getItem('shipping_method') || 'Standard';
+  let couponDiscount = 0;
+  let giftCardAmount = 0;
+  let subtotal = 0;
+
+  cart.forEach(item => {
+    subtotal += (item.quantity || 1) * item.price;
+  });
+
+  const tax = (subtotal - couponDiscount - giftCardAmount + shippingCost) * 0.13;
+  const total = subtotal - couponDiscount - giftCardAmount + shippingCost + tax;
+
+  const summaryEl = document.getElementById('order-summary');
+  summaryEl.innerHTML = `
+    <p>Subtotal: $${subtotal.toFixed(2)}</p>
+    <p>Shipping (${shippingMethod}): $${shippingCost.toFixed(2)}</p>
+    <p>Coupon Discount: -$${couponDiscount.toFixed(2)}</p>
+    <p>Gift Card: -$${giftCardAmount.toFixed(2)}</p>
+    <p>Tax (13%): $${tax.toFixed(2)}</p>
+    <p><strong>Total: $${total.toFixed(2)}</strong></p>
+    <p><em>Payment Method: Cash on Delivery</em></p>
+  `;
+
+  async function placeOrder() {
+    const order = {
+      firstName: document.getElementById('firstName').value,
+      lastName: document.getElementById('lastName').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
+      city: document.getElementById('city').value,
+      province: document.getElementById('province').value,
+      country: document.getElementById('country').value,
+      postalCode: document.getElementById('postalCode').value,
+      paymentMethod: 'Cash on Delivery',
+      shippingMethod,
+      shippingCost,
+      couponDiscount,
+      giftCardAmount,
+      tax: parseFloat(tax.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
+      items: cart,
+      createdAt: new Date().toISOString(),
+      status: 'Pending'
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    function updateSummary() {
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      let subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-      let tax = subtotal * 0.13;
-      let total = subtotal + tax;
-      document.getElementById('subtotal').textContent = `Subtotal: $${subtotal.toFixed(2)}`;
-      document.getElementById('tax').textContent = `Tax (13%): $${tax.toFixed(2)}`;
-      document.getElementById('total').textContent = `Total to be Paid (COD): $${total.toFixed(2)}`;
-    }
-
-    async function submitOrder() {
-      const firstName = document.getElementById('firstName').value.trim();
-      const lastName = document.getElementById('lastName').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const address = document.getElementById('address').value.trim();
-      const city = document.getElementById('city').value.trim();
-      const province = document.getElementById('province').value.trim();
-      const country = document.getElementById('country').value.trim();
-      const postalCode = document.getElementById('postalCode').value.trim();
-
-      if (!firstName || !lastName || !email || !phone || !address || !city || !province || !country || !postalCode) {
-        alert('Please fill in all fields.');
-        return;
-      }
-
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      if (cart.length === 0) {
-        alert('Your cart is empty.');
-        return;
-      }
-
-      const order = {
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        city,
-        province,
-        country,
-        postalCode,
-        method: 'COD',
-        items: cart,
-        status: 'pending',
-        createdAt: serverTimestamp()
-      };
-
+    try {
       await addDoc(collection(db, 'orders'), order);
+      alert('Order placed successfully!');
       localStorage.removeItem('cart');
-      alert('Order placed successfully! Confirmation will be sent via email.');
       window.location.href = 'index.html';
+    } catch (err) {
+      console.error('Error placing order', err);
+      alert('Failed to place order.');
     }
+  }
+</script>
 
-    window.addEventListener('beforeunload', async () => {
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      if (cart.length > 0 && !sessionStorage.getItem('order_submitted')) {
-        await addDoc(collection(db, 'abandoned_carts'), {
-          cart,
-          createdAt: serverTimestamp()
-        });
-      }
-    });
-
-    updateSummary();
-  </script>
 </body>
 </html>
