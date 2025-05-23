@@ -78,7 +78,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -157,6 +157,25 @@
       alert('Failed to place order.');
     }
   };
+
+  // Abandoned cart tracking
+  setTimeout(() => {
+    const email = document.getElementById('email')?.value || '';
+    const phone = document.getElementById('phone')?.value || '';
+
+    if (cart.length > 0 && checkoutData) {
+      const abandoned = {
+        cart,
+        checkoutData,
+        email,
+        phone,
+        createdAt: new Date().toISOString()
+      };
+
+      const id = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      setDoc(doc(db, 'abandonedCarts', id), abandoned);
+    }
+  }, 300000); // 5 minutes = 300000 ms
 </script>
 
 </body>
