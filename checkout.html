@@ -11,7 +11,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 500px;
+      max-width: 600px;
       margin: auto;
       background: white;
       padding: 30px;
@@ -22,38 +22,47 @@
       width: 100%;
       padding: 10px;
       margin-top: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
-    #cod-info {
-      margin-top: 10px;
+    button {
+      background: #2f855a;
+      color: white;
       font-weight: bold;
+      cursor: pointer;
     }
-    #cod-info.available {
-      color: green;
+    h2 {
+      text-align: center;
     }
-    #cod-info.unavailable {
-      color: red;
+    .cod-note {
+      color: #2f855a;
+      font-weight: bold;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Checkout</h2>
-    <input type="text" id="name" placeholder="Your Name">
-    <input type="text" id="address" placeholder="Delivery Address">
-    <input type="text" id="postal" placeholder="Postal Code" oninput="checkPostalCode()">
-    <div id="cod-info"></div>
-
-    <select id="payment-method">
-      <option value="online">Online Payment</option>
-      <option value="cod" disabled>Cash on Delivery (COD)</option>
-    </select>
-
+    <input type="text" id="firstName" placeholder="First Name">
+    <input type="text" id="lastName" placeholder="Last Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="tel" id="phone" placeholder="Phone Number">
+    <input type="text" id="address" placeholder="Address">
+    <input type="text" id="city" placeholder="City">
+    <input type="text" id="province" placeholder="Province">
+    <input type="text" id="country" placeholder="Country">
+    <input type="text" id="postalCode" placeholder="Postal Code">
+    <div class="cod-note">Only Cash on Delivery (COD) available.</div>
     <button onclick="submitOrder()">Place Order</button>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-  <script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js';
+    import {
+      getFirestore, collection, addDoc, serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js';
+
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
       authDomain: "truenrothbox.firebaseapp.com",
@@ -62,67 +71,60 @@
       messagingSenderId: "103087965950",
       appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    const codAvailableZips = ['N6A', 'N6B', 'N6E', 'N5Y'];
-
-    function checkPostalCode() {
-      const code = document.getElementById('postal').value.trim().toUpperCase().slice(0, 3);
-      const codInfo = document.getElementById('cod-info');
-      const codOption = document.getElementById('payment-method').querySelector('[value="cod"]');
-
-      if (codAvailableZips.includes(code)) {
-        codInfo.textContent = "Cash on Delivery is available in your area.";
-        codInfo.className = "available";
-        codOption.disabled = false;
-      } else {
-        codInfo.textContent = "COD is not available for your area.";
-        codInfo.className = "unavailable";
-        codOption.disabled = true;
-      }
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     async function submitOrder() {
-      const name = document.getElementById('name').value;
-      const address = document.getElementById('address').value;
-      const postal = document.getElementById('postal').value;
-      const method = document.getElementById('payment-method').value;
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const province = document.getElementById('province').value.trim();
+      const country = document.getElementById('country').value.trim();
+      const postalCode = document.getElementById('postalCode').value.trim();
 
-      if (!name || !address || !postal) {
-        alert("Please fill in all fields.");
+      if (!firstName || !lastName || !email || !phone || !address || !city || !province || !country || !postalCode) {
+        alert('Please fill in all fields.');
         return;
       }
 
-      await db.collection("orders").add({
-        name,
-        address,
-        postal,
-        method,
-        items: cart,
-        createdAt: new Date().toISOString()
-      });
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      if (cart.length === 0) {
+        alert('Your cart is empty.');
+        return;
+      }
 
+      const order = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        city,
+        province,
+        country,
+        postalCode,
+        method: 'COD',
+        items: cart,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, 'orders'), order);
       localStorage.removeItem('cart');
-      alert('Order placed successfully!');
+      alert('Order placed successfully! You will receive a WhatsApp confirmation.');
       window.location.href = 'index.html';
     }
 
-    // Save cart abandonment if user leaves page with filled data but doesn't submit
-    window.addEventListener('beforeunload', () => {
-      const name = document.getElementById('name').value;
-      const address = document.getElementById('address').value;
-      const postal = document.getElementById('postal').value;
+    window.addEventListener('beforeunload', async () => {
       const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-      if (cart.length > 0 && (!sessionStorage.getItem('order_submitted'))) {
-        db.collection("abandoned_carts").add({
-          name,
-          address,
-          postal,
+      if (cart.length > 0 && !sessionStorage.getItem('order_submitted')) {
+        await addDoc(collection(db, 'abandoned_carts'), {
           cart,
-          abandonedAt: new Date().toISOString()
+          createdAt: serverTimestamp()
         });
       }
     });
