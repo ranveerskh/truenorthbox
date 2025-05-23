@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - True North Box</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -18,84 +18,77 @@
       background: white;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      max-width: 400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       width: 100%;
+      max-width: 400px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
     }
     input {
-      display: block;
       width: 100%;
-      padding: 10px;
-      margin: 15px 0;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
     button {
-      padding: 10px 20px;
       width: 100%;
+      padding: 12px;
       background: #4CAF50;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
     }
-    .switch {
+    .error {
+      color: red;
       text-align: center;
-      margin-top: 10px;
-      cursor: pointer;
-      color: blue;
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2 id="form-title">Login</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="submitForm()">Submit</button>
-    <div class="switch" onclick="toggleMode()">Don't have an account? Register</div>
-  </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
-      authDomain: "truenrothbox.firebaseapp.com",
-      projectId: "truenrothbox",
-      storageBucket: "truenrothbox.firebasestorage.app",
-      messagingSenderId: "103087965950",
-      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+<div class="login-box">
+  <h2>Admin Login</h2>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <p class="error" id="error-msg"></p>
+</div>
 
-    let isLogin = true;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
 
-    function toggleMode() {
-      isLogin = !isLogin;
-      document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Register';
-      document.querySelector('.switch').innerText = isLogin ? "Don't have an account? Register" : 'Already have an account? Login';
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.firebasestorage.app",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.login = async function () {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const errorMsg = document.getElementById('error-msg');
+    errorMsg.textContent = '';
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "history.html";  // or "admin-order.html" if you renamed it
+    } catch (err) {
+      console.error(err);
+      errorMsg.textContent = "Login failed: " + err.message;
     }
+  }
+</script>
 
-    function submitForm() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      if (isLogin) {
-        auth.signInWithEmailAndPassword(email, password)
-          .then(() => {
-            alert('Login successful!');
-            window.location.href = 'index.html';
-          })
-          .catch(err => alert(err.message));
-      } else {
-        auth.createUserWithEmailAndPassword(email, password)
-          .then(() => {
-            alert('Registration successful!');
-            window.location.href = 'index.html';
-          })
-          .catch(err => alert(err.message));
-      }
-    }
-  </script>
 </body>
 </html>
