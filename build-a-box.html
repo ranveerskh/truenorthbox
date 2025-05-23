@@ -4,148 +4,162 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Build Your Box - True North Box</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
+      background: #f9f9f9;
+      padding: 20px;
     }
-    header {
-      background: #222;
-      color: white;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    header a {
-      color: white;
-      margin-left: 20px;
-      text-decoration: none;
-    }
-    h1 {
+    h2 {
       text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .items-group input {
+      margin-bottom: 5px;
+    }
+    .add-btn {
+      background: #007BFF;
+      color: white;
+      border: none;
+      width: auto;
+      padding: 8px 14px;
+      margin: 10px 0;
+    }
+    .submit-btn {
+      background: #28a745;
+      color: white;
+      border: none;
       margin-top: 20px;
     }
-    .products, .selected {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      padding: 30px;
-    }
-    .product {
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    .message {
       text-align: center;
-    }
-    .product img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-    button {
-      padding: 10px 15px;
-      margin-top: 10px;
-    }
-    .note {
-      margin-top: 10px;
-      width: 100%;
-      padding: 8px;
+      color: green;
+      font-weight: bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div><strong>True North Box</strong></div>
-    <div>
-      <a href="index.html">Home</a>
-      <a href="collections.html">Collections</a>
-      <a href="cart.html"><i class="fas fa-shopping-cart"></i></a>
+
+<div class="container">
+  <h2>Build Your Gift Box</h2>
+  <form id="boxForm">
+    <label for="name">Your Name</label>
+    <input type="text" id="name" required>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" required>
+
+    <label for="phone">Phone Number</label>
+    <input type="tel" id="phone" required>
+
+    <label for="deliveryDate">Preferred Delivery Date</label>
+    <input type="date" id="deliveryDate" required>
+
+    <label for="note">Handwritten Note (for the customer)</label>
+    <textarea id="note" rows="3" placeholder="Write your message here..."></textarea>
+
+    <label>Items (start with 5)</label>
+    <div id="items" class="items-group">
+      <input type="text" placeholder="Item 1" required>
+      <input type="text" placeholder="Item 2" required>
+      <input type="text" placeholder="Item 3" required>
+      <input type="text" placeholder="Item 4" required>
+      <input type="text" placeholder="Item 5" required>
     </div>
-  </header>
+    <button type="button" class="add-btn" onclick="addItem()">+ Add More Items</button>
 
-  <h1>Build Your Custom Gift Box</h1>
-  <h2 style="text-align:center;">Available Products</h2>
-  <div class="products" id="available-products"></div>
+    <button type="submit" class="submit-btn">Submit</button>
+    <div class="message" id="message"></div>
+  </form>
+</div>
 
-  <h2 style="text-align:center;">Selected Products</h2>
-  <div class="selected" id="selected-products"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
-  <div style="text-align:center; margin: 20px;">
-    <button onclick="addToCart()">Add Custom Box to Cart</button>
-  </div>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.firebasestorage.app",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
-      authDomain: "truenrothbox.firebaseapp.com",
-      projectId: "truenrothbox",
-      storageBucket: "truenrothbox.firebasestorage.app",
-      messagingSenderId: "103087965950",
-      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const form = document.getElementById('boxForm');
+  const itemsContainer = document.getElementById('items');
+  const messageEl = document.getElementById('message');
+
+  function addItem() {
+    const input = document.createElement('input');
+    input.type = "text";
+    input.placeholder = `Item ${itemsContainer.children.length + 1}`;
+    itemsContainer.appendChild(input);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const deliveryDate = document.getElementById('deliveryDate').value;
+    const note = document.getElementById('note').value.trim();
+    const items = Array.from(itemsContainer.querySelectorAll('input'))
+                       .map(input => input.value.trim())
+                       .filter(Boolean);
+
+    if (items.length < 1) {
+      alert('Please enter at least one item.');
+      return;
+    }
+
+    const data = {
+      name,
+      email,
+      phone,
+      deliveryDate,
+      note,
+      items,
+      status: 'pending',
+      createdAt: new Date().toISOString()
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    const availableEl = document.getElementById('available-products');
-    const selectedEl = document.getElementById('selected-products');
-    const selectedItems = [];
-
-    db.collection('products').where('isBoxEligible', '==', true).get().then(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const div = document.createElement('div');
-        div.className = 'product';
-        div.innerHTML = `
-          <img src="${data.imageUrl}" alt="${data.name}" />
-          <h4>${data.name}</h4>
-          <p>$${data.price}</p>
-          <button onclick='selectProduct(${JSON.stringify({...data, id: doc.id})})'>Add</button>
-        `;
-        availableEl.appendChild(div);
-      });
-    });
-
-    function selectProduct(product) {
-      if (selectedItems.find(item => item.id === product.id)) return;
-
-      selectedItems.push(product);
-      const div = document.createElement('div');
-      div.className = 'product';
-      div.innerHTML = `
-        <img src="${product.imageUrl}" alt="${product.name}" />
-        <h4>${product.name}</h4>
-        <p>$${product.price}</p>
-        <textarea class="note" placeholder="Add a note for this item..."></textarea>
-      `;
-      selectedEl.appendChild(div);
+    try {
+      await addDoc(collection(db, "customBoxes"), data);
+      messageEl.textContent = "Thank you! We’ll create your box and send you a cart link in 12–24 hours.";
+      form.reset();
+      itemsContainer.innerHTML = '';
+      for (let i = 1; i <= 5; i++) addItem();
+    } catch (err) {
+      console.error("Error submitting box:", err);
+      alert("Something went wrong. Please try again.");
     }
+  });
+</script>
 
-    function addToCart() {
-      const notes = document.querySelectorAll('.note');
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-      const customBox = {
-        type: 'customBox',
-        items: selectedItems.map((item, i) => ({
-          ...item,
-          note: notes[i].value || ''
-        })),
-        createdAt: new Date().toISOString()
-      };
-
-      cart.push(customBox);
-      localStorage.setItem('cart', JSON.stringify(cart));
-      alert('Custom gift box added to cart!');
-      window.location.href = 'cart.html';
-    }
-  </script>
 </body>
 </html>
