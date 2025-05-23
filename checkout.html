@@ -93,56 +93,54 @@
   const db = getFirestore(app);
 
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const shippingCost = parseFloat(localStorage.getItem('shipping_cost'));
-  const shippingMethod = localStorage.getItem('shipping_method');
-
-  const couponDiscount = 0;
-  const giftCardAmount = 0;
-  let subtotal = 0;
-  cart.forEach(item => {
-    subtotal += (item.quantity || 1) * item.price;
-  });
-
-  const shippingMissing = isNaN(shippingCost);
-  const tax = (subtotal - couponDiscount - giftCardAmount + (shippingMissing ? 0 : shippingCost)) * 0.13;
-  const total = subtotal - couponDiscount - giftCardAmount + (shippingMissing ? 0 : shippingCost) + tax;
+  const checkoutData = JSON.parse(localStorage.getItem('checkoutData'));
 
   const summaryEl = document.getElementById('order-summary');
-  summaryEl.innerHTML = `
-    ${shippingMissing ? '<div class="warning">⚠️ Shipping details not found. Please go back to the cart and select a shipping option.</div>' : ''}
-    <p>Subtotal: $${subtotal.toFixed(2)}</p>
-    <p>Shipping (${shippingMethod || 'N/A'}): $${(shippingMissing ? 0 : shippingCost).toFixed(2)}</p>
-    <p>Coupon Discount: -$${couponDiscount.toFixed(2)}</p>
-    <p>Gift Card: -$${giftCardAmount.toFixed(2)}</p>
-    <p>Tax (13%): $${tax.toFixed(2)}</p>
-    <p><strong>Total: $${total.toFixed(2)}</strong></p>
-    <p><em>Payment Method: Cash on Delivery</em></p>
-  `;
 
-  async function placeOrder() {
+  if (!checkoutData) {
+    summaryEl.innerHTML = `<div class="warning">⚠️ Shipping details not found. Please go back to the cart and select a shipping option.</div>`;
+  } else {
+    summaryEl.innerHTML = `
+      <p>Subtotal: $${checkoutData.subtotal.toFixed(2)}</p>
+      <p>Shipping (${checkoutData.shippingType}${checkoutData.isLocal ? ' - London ON' : ''}): $${checkoutData.shippingCost.toFixed(2)}</p>
+      <p>Coupon Discount: -$${checkoutData.couponDiscount.toFixed(2)}</p>
+      <p>Gift Card: -$${checkoutData.giftCardAmount.toFixed(2)}</p>
+      <p>Tax (13%): $${checkoutData.tax.toFixed(2)}</p>
+      <p><strong>Total: $${checkoutData.total.toFixed(2)}</strong></p>
+      <p><em>Payment Method: Cash on Delivery</em></p>
+    `;
+  }
+
+  window.placeOrder = async () => {
     if (cart.length === 0) {
       alert('Your cart is empty.');
       return;
     }
 
+    if (!checkoutData) {
+      alert("Missing checkout info. Please return to the cart and try again.");
+      return;
+    }
+
     const order = {
-      firstName: document.getElementById('firstName').value,
-      lastName: document.getElementById('lastName').value,
-      email: document.getElementById('email').value,
-      phone: document.getElementById('phone').value,
-      address: document.getElementById('address').value,
-      city: document.getElementById('city').value,
-      province: document.getElementById('province').value,
-      country: document.getElementById('country').value,
-      postalCode: document.getElementById('postalCode').value,
+      firstName: document.getElementById('firstName').value.trim(),
+      lastName: document.getElementById('lastName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      address: document.getElementById('address').value.trim(),
+      city: document.getElementById('city').value.trim(),
+      province: document.getElementById('province').value.trim(),
+      country: document.getElementById('country').value.trim(),
+      postalCode: document.getElementById('postalCode').value.trim(),
       paymentMethod: 'Cash on Delivery',
-      shippingMethod: shippingMethod || 'N/A',
-      shippingCost: shippingMissing ? 0 : shippingCost,
-      couponDiscount,
-      giftCardAmount,
-      tax: parseFloat(tax.toFixed(2)),
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      total: parseFloat(total.toFixed(2)),
+      shippingMethod: checkoutData.shippingType,
+      isLocal: checkoutData.isLocal,
+      shippingCost: checkoutData.shippingCost,
+      couponDiscount: checkoutData.couponDiscount,
+      giftCardAmount: checkoutData.giftCardAmount,
+      tax: checkoutData.tax,
+      subtotal: checkoutData.subtotal,
+      total: checkoutData.total,
       items: cart,
       createdAt: new Date().toISOString(),
       status: 'Pending'
@@ -152,14 +150,13 @@
       await addDoc(collection(db, 'orders'), order);
       alert('Order placed successfully!');
       localStorage.removeItem('cart');
-      localStorage.removeItem('shipping_cost');
-      localStorage.removeItem('shipping_method');
+      localStorage.removeItem('checkoutData');
       window.location.href = 'index.html';
     } catch (err) {
       console.error('Error placing order', err);
       alert('Failed to place order.');
     }
-  }
+  };
 </script>
 
 </body>
