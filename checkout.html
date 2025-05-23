@@ -78,7 +78,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -111,14 +111,17 @@
     `;
   }
 
-  window.placeOrder = async () => {
-    if (cart.length === 0) {
-      alert('Your cart is empty.');
-      return;
-    }
+  // Save email/phone to localStorage for abandoned cart
+  document.getElementById('email').addEventListener('input', e => {
+    localStorage.setItem('email', e.target.value);
+  });
+  document.getElementById('phone').addEventListener('input', e => {
+    localStorage.setItem('phone', e.target.value);
+  });
 
-    if (!checkoutData) {
-      alert("Missing checkout info. Please return to the cart and try again.");
+  window.placeOrder = async () => {
+    if (cart.length === 0 || !checkoutData) {
+      alert('Missing cart or shipping data.');
       return;
     }
 
@@ -148,6 +151,14 @@
 
     try {
       await addDoc(collection(db, 'orders'), order);
+
+      // Remove abandoned cart entry
+      const abandonedId = localStorage.getItem('abandoned_cart_id');
+      if (abandonedId) {
+        await deleteDoc(doc(db, 'abandonedCarts', abandonedId));
+        localStorage.removeItem('abandoned_cart_id');
+      }
+
       alert('Order placed successfully!');
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
@@ -157,25 +168,6 @@
       alert('Failed to place order.');
     }
   };
-
-  // Abandoned cart tracking
-  setTimeout(() => {
-    const email = document.getElementById('email')?.value || '';
-    const phone = document.getElementById('phone')?.value || '';
-
-    if (cart.length > 0 && checkoutData) {
-      const abandoned = {
-        cart,
-        checkoutData,
-        email,
-        phone,
-        createdAt: new Date().toISOString()
-      };
-
-      const id = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      setDoc(doc(db, 'abandonedCarts', id), abandoned);
-    }
-  }, 300000); // 5 minutes = 300000 ms
 </script>
 
 </body>
