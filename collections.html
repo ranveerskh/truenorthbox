@@ -13,7 +13,7 @@
       padding: 0;
     }
     header {
-      background: #222;
+      background: #2f855a;
       color: white;
       padding: 15px 30px;
       display: flex;
@@ -28,6 +28,7 @@
     h1 {
       text-align: center;
       margin-top: 30px;
+      color: #333;
     }
     .grid {
       display: grid;
@@ -64,9 +65,12 @@
     <!-- Categories will appear here -->
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
       authDomain: "truenrothbox.firebaseapp.com",
@@ -75,26 +79,25 @@
       messagingSenderId: "103087965950",
       appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const categoriesEl = document.getElementById('categories');
     const seen = new Set();
 
-    db.collection('products').get().then(snapshot => {
-      snapshot.forEach(doc => {
-        const { category } = doc.data();
-        if (!seen.has(category)) {
-          seen.add(category);
-          const div = document.createElement('div');
-          div.className = 'card';
-          div.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-          div.onclick = () => {
-            window.location.href = `category.html?name=${category}`;
-          }
-          categoriesEl.appendChild(div);
-        }
-      });
+    const snapshot = await getDocs(collection(db, 'products'));
+    snapshot.forEach(doc => {
+      const { category } = doc.data();
+      if (!category || seen.has(category)) return;
+      seen.add(category);
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+      div.onclick = () => {
+        window.location.href = `category.html?name=${encodeURIComponent(category)}`;
+      };
+      categoriesEl.appendChild(div);
     });
   </script>
 </body>
