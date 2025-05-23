@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Cart - True North Box</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,7 +13,7 @@
       padding: 0;
     }
     header {
-      background: #222;
+      background: #2f855a;
       color: white;
       padding: 15px 30px;
       display: flex;
@@ -38,20 +38,36 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
       border-bottom: 1px solid #ddd;
       padding: 15px 0;
     }
     .item:last-child {
       border-bottom: none;
     }
+    .item img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .item-details {
+      flex: 1;
+    }
     .custom-note {
       font-style: italic;
       color: #555;
+      margin-top: 5px;
     }
-    .total {
-      font-size: 1.2rem;
+    .summary {
+      font-size: 1.1rem;
       text-align: right;
       margin-top: 20px;
+    }
+    .summary p {
+      margin: 5px 0;
     }
     button {
       padding: 10px 20px;
@@ -67,6 +83,7 @@
   </style>
 </head>
 <body>
+
   <header>
     <div><strong>True North Box</strong></div>
     <div>
@@ -77,7 +94,7 @@
 
   <h1>Your Cart</h1>
   <div class="cart-container" id="cart-items"></div>
-  <div class="cart-container total" id="cart-total"></div>
+  <div class="cart-container summary" id="cart-summary"></div>
   <div class="cart-container">
     <button onclick="proceedToCheckout()">Proceed to Checkout</button>
   </div>
@@ -85,30 +102,46 @@
   <script>
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartItemsEl = document.getElementById('cart-items');
-    const cartTotalEl = document.getElementById('cart-total');
-    let total = 0;
+    const cartSummaryEl = document.getElementById('cart-summary');
+
+    let subtotal = 0;
 
     if (cart.length === 0) {
       cartItemsEl.innerHTML = '<p>Your cart is empty.</p>';
       document.querySelector('button').style.display = 'none';
     } else {
-      cart.forEach((item, index) => {
-        if (item.type === 'customBox') {
-          cartItemsEl.innerHTML += `<div class="item"><strong>Custom Gift Box:</strong><ul>${item.items.map(i => `<li>${i.name} - $${i.price} <div class='custom-note'>Note: ${i.note}</div></li>`).join('')}</ul></div>`;
-          total += item.items.reduce((sum, i) => sum + i.price, 0);
-        } else {
-          cartItemsEl.innerHTML += `<div class="item">${item.name} - $${item.price}</div>`;
-          total += item.price;
-        }
-      });
-    }
+      cart.forEach(item => {
+        const itemTotal = item.price * (item.quantity || 1);
+        subtotal += itemTotal;
 
-    cartTotalEl.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <img src="${item.imageUrl}" alt="${item.name}">
+          <div class="item-details">
+            <strong>${item.name}</strong><br>
+            Quantity: ${item.quantity || 1} × $${item.price.toFixed(2)}<br>
+            <span class="custom-note">${item.note ? 'Note: ' + item.note : ''}</span>
+          </div>
+          <div><strong>$${itemTotal.toFixed(2)}</strong></div>
+        `;
+        cartItemsEl.appendChild(div);
+      });
+
+      const tax = subtotal * 0.13;
+      const total = subtotal + tax;
+
+      cartSummaryEl.innerHTML = `
+        <p>Subtotal: $${subtotal.toFixed(2)}</p>
+        <p>Tax (13%): $${tax.toFixed(2)}</p>
+        <p><strong>Total: $${total.toFixed(2)}</strong></p>
+      `;
+    }
 
     function proceedToCheckout() {
       alert('Checkout feature coming soon. For now, you can implement order submission or WhatsApp order.');
-      // Later: Redirect to checkout.html or send data to Firebase
     }
   </script>
+
 </body>
 </html>
