@@ -121,10 +121,18 @@
       font-size: 1rem;
       margin: 10px 0 5px;
     }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
-
   <header>
     <div><strong>True North Box</strong></div>
     <div>
@@ -135,6 +143,23 @@
 
   <h1>Your Cart</h1>
   <div class="cart-container" id="cart-items"></div>
+  <div class="cart-container">
+    <label for="shipping-method">Shipping Method:</label>
+    <select id="shipping-method" onchange="renderCart()">
+      <option value="regular">Regular Shipping ($10) — 5–10 days (Free over $100)</option>
+      <option value="fast">Fast Shipping ($15) — 4–7 days (Free over $200)</option>
+      <option value="expedited">Expedited Shipping ($35) — 2 days</option>
+      <option value="local">Local Shipping ($10) — 24–48 hours (Free over $100)</option>
+    </select>
+    <div class="input-group">
+      <input type="text" id="coupon-code" placeholder="Enter Coupon Code">
+      <button onclick="applyCoupon()">Apply</button>
+    </div>
+    <div class="input-group">
+      <input type="text" id="giftcard-code" placeholder="Enter Gift Card Code">
+      <button onclick="applyGiftCard()">Redeem</button>
+    </div>
+  </div>
   <div class="cart-container summary" id="cart-summary"></div>
   <div class="cart-container">
     <button onclick="proceedToCheckout()">Proceed to Checkout</button>
@@ -148,7 +173,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
     import {
-      getFirestore, collection, query, where, getDocs
+      getFirestore, collection, query, where, getDocs, doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -165,8 +190,39 @@
 
     const cartItemsEl = document.getElementById('cart-items');
     const cartSummaryEl = document.getElementById('cart-summary');
+    const shippingMethodEl = document.getElementById('shipping-method');
 
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    let couponDiscount = 0;
+    let giftCardAmount = 0;
+
+    async function applyCoupon() {
+      const code = document.getElementById('coupon-code').value.trim();
+      if (!code) return;
+      const docSnap = await getDoc(doc(db, 'coupons', code));
+      if (docSnap.exists()) {
+        couponDiscount = docSnap.data().discount || 0;
+        alert('Coupon applied!');
+      } else {
+        couponDiscount = 0;
+        alert('Invalid coupon code');
+      }
+      renderCart();
+    }
+
+    async function applyGiftCard() {
+      const code = document.getElementById('giftcard-code').value.trim();
+      if (!code) return;
+      const docSnap = await getDoc(doc(db, 'giftcards', code));
+      if (docSnap.exists()) {
+        giftCardAmount = docSnap.data().amount || 0;
+        alert('Gift card redeemed!');
+      } else {
+        giftCardAmount = 0;
+        alert('Invalid gift card code');
+      }
+      renderCart();
+    }
 
     function renderCart() {
       cartItemsEl.innerHTML = '';
@@ -201,11 +257,22 @@
         cartItemsEl.appendChild(div);
       });
 
-      const tax = subtotal * 0.13;
-      const total = subtotal + tax;
+      let shipping = 0;
+      if (shippingMethodEl.value === 'regular') shipping = subtotal > 100 ? 0 : 10;
+      if (shippingMethodEl.value === 'fast') shipping = subtotal > 200 ? 0 : 15;
+      if (shippingMethodEl.value === 'expedited') shipping = 35;
+      if (shippingMethodEl.value === 'local') shipping = subtotal > 100 ? 0 : 10;
+
+      const discount = couponDiscount;
+      const gift = giftCardAmount;
+      const tax = (subtotal - discount - gift + shipping) * 0.13;
+      const total = subtotal - discount - gift + shipping + tax;
 
       cartSummaryEl.innerHTML = `
         <p>Subtotal: $${subtotal.toFixed(2)}</p>
+        <p>Shipping: $${shipping.toFixed(2)}</p>
+        <p>Coupon Discount: -$${discount.toFixed(2)}</p>
+        <p>Gift Card: -$${gift.toFixed(2)}</p>
         <p>Tax (13%): $${tax.toFixed(2)}</p>
         <p><strong>Total: $${total.toFixed(2)}</strong></p>
       `;
@@ -248,6 +315,5 @@
     renderCart();
     loadRecommendations();
   </script>
-
 </body>
 </html>
