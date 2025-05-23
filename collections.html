@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collections - True North Box</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #222;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header a {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 40px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>True North Box</strong></div>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="build-a-box.html">Build Your Box</a>
+      <a href="cart.html"><i class="fas fa-shopping-cart"></i></a>
+    </div>
+  </header>
+
+  <h1>Shop by Collection</h1>
+  <div class="grid" id="categories">
+    <!-- Categories will appear here -->
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.firebasestorage.app",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const categoriesEl = document.getElementById('categories');
+    const seen = new Set();
+
+    db.collection('products').get().then(snapshot => {
+      snapshot.forEach(doc => {
+        const { category } = doc.data();
+        if (!seen.has(category)) {
+          seen.add(category);
+          const div = document.createElement('div');
+          div.className = 'card';
+          div.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+          div.onclick = () => {
+            window.location.href = `category.html?name=${category}`;
+          }
+          categoriesEl.appendChild(div);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
