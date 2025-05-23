@@ -1,1 +1,84 @@
-abandoned.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Abandoned Carts - Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css"/>
+  <style>
+    body { background: #f4f4f4; padding: 20px; font-family: Arial; }
+    .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { text-align: center; }
+    .card { border-bottom: 1px solid #ddd; padding: 15px 0; margin-bottom: 20px; }
+    .card p { margin: 4px 0; }
+    .items { margin-top: 10px; padding-left: 20px; }
+    .items li { font-size: 0.95rem; }
+    .email, .phone { font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Abandoned Carts</h2>
+  <div id="abandoned-list"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.firebasestorage.app",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const listEl = document.getElementById("abandoned-list");
+
+  async function loadAbandonedCarts() {
+    const snapshot = await getDocs(collection(db, "abandonedCarts"));
+    let html = "";
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const time = new Date(data.updatedAt || data.createdAt).toLocaleString();
+      const items = (data.cart || []).map(item => 
+        `<li>${item.name} × ${item.quantity || 1} - $${(item.price * (item.quantity || 1)).toFixed(2)}</li>`
+      ).join('');
+
+      html += `
+        <div class="card">
+          <p><strong>Time:</strong> ${time}</p>
+          <p><span class="email">Email:</span> ${data.email || '—'}</p>
+          <p><span class="phone">Phone:</span> ${data.phone || '—'}</p>
+          <div class="items">
+            <strong>Items:</strong>
+            <ul>${items}</ul>
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html || "<p>No abandoned carts found.</p>";
+  }
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      loadAbandonedCarts();
+    } else {
+      alert("Access denied. Please log in as admin.");
+      window.location.href = "login.html";
+    }
+  });
+</script>
+
+</body>
+</html>
