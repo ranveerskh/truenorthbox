@@ -46,7 +46,7 @@
 
 <div class="cart-container">
   <label for="shipping-method">Shipping Method:</label>
-  <select id="shipping-method" onchange="renderCart()">
+  <select id="shipping-method">
     <option value="regular">Regular ($10 / Free over $100)</option>
     <option value="fast">Fast ($15 / Free over $200)</option>
     <option value="expedited">Expedited ($35)</option>
@@ -120,7 +120,22 @@
   }
 
   function getLocalShippingStatus() {
-    const userLocation = localStorage.getItem('user_city') || 'London';
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+          const data = await res.json();
+          const city = data.address.city || data.address.town || data.address.village || "";
+          localStorage.setItem('user_city', city);
+          renderCart();
+        } catch (e) {
+          console.error('Location lookup failed', e);
+        }
+      });
+    }
+    const userLocation = localStorage.getItem('user_city') || '';
     return userLocation.toLowerCase().includes('london');
   }
 
@@ -167,9 +182,9 @@
       cartItemsEl.appendChild(div);
     });
 
-    let shipping = 0;
     const type = shippingMethodEl.value;
     const isLocal = getLocalShippingStatus();
+    let shipping = 0;
     if (type === 'regular') shipping = subtotal > 100 ? 0 : 10;
     if (type === 'fast') shipping = subtotal > 200 ? 0 : 15;
     if (type === 'expedited') shipping = 35;
@@ -221,6 +236,8 @@
       grid.appendChild(box);
     });
   }
+
+  shippingMethodEl.addEventListener('change', renderCart);
 
   renderCart();
   loadRecommendations();
