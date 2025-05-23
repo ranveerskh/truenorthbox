@@ -1,1 +1,106 @@
-yy
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order History - Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css"/>
+  <style>
+    body { background: #f5f5f5; padding: 20px; font-family: Arial; }
+    .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 1200px; margin: auto; }
+    h2 { text-align: center; }
+    .order { border-bottom: 1px solid #ccc; margin-bottom: 20px; padding-bottom: 15px; }
+    .order p { margin: 4px 0; }
+    .status { display: flex; align-items: center; gap: 10px; }
+    select { padding: 5px; }
+    .items { margin-top: 10px; padding-left: 15px; }
+    .items li { font-size: 0.9rem; }
+    .tag { font-size: 0.85rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Admin - All Orders</h2>
+  <div id="orders"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.firebasestorage.app",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const ordersEl = document.getElementById('orders');
+
+  const loadOrders = async () => {
+    const snapshot = await getDocs(collection(db, "orders"));
+    let html = '';
+
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      html += `
+        <div class="order">
+          <p><strong>Customer:</strong> ${data.firstName} ${data.lastName} (${data.email})</p>
+          <p><strong>Phone:</strong> ${data.phone}</p>
+          <p><strong>Address:</strong> ${data.address}, ${data.city}, ${data.province}, ${data.postalCode}, ${data.country}</p>
+          <p><strong>Payment:</strong> ${data.paymentMethod}</p>
+          <p><strong>Shipping:</strong> ${data.shippingMethod} - $${data.shippingCost.toFixed(2)}</p>
+          <p><strong>Subtotal:</strong> $${data.subtotal.toFixed(2)}</p>
+          <p><strong>Discounts:</strong> Coupon $${data.couponDiscount.toFixed(2)} | GiftCard $${data.giftCardAmount.toFixed(2)}</p>
+          <p><strong>Tax:</strong> $${data.tax.toFixed(2)}</p>
+          <p><strong>Total:</strong> <strong>$${data.total.toFixed(2)}</strong></p>
+          <p><strong>Created:</strong> ${new Date(data.createdAt).toLocaleString()}</p>
+          <p class="status"><strong>Status:</strong> 
+            <select data-id="${docSnap.id}" onchange="updateStatus(this)">
+              <option value="Pending" ${data.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Shipped" ${data.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+              <option value="Delivered" ${data.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+            </select>
+            <span class="tag">${data.status}</span>
+          </p>
+          <div class="items">
+            <strong>Items:</strong>
+            <ul>
+              ${data.items.map(i => `<li>${i.name} x ${i.quantity || 1} - $${(i.price * (i.quantity || 1)).toFixed(2)}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+    });
+
+    ordersEl.innerHTML = html;
+  };
+
+  window.updateStatus = async (select) => {
+    const orderId = select.getAttribute('data-id');
+    const status = select.value;
+    await updateDoc(doc(db, 'orders', orderId), { status });
+    alert('Status updated!');
+    loadOrders(); // refresh
+  };
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      loadOrders();
+    } else {
+      alert("Access denied. Please log in as admin.");
+      window.location.href = "login.html";
+    }
+  });
+</script>
+
+</body>
+</html>
