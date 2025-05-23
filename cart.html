@@ -120,21 +120,6 @@
   }
 
   function getLocalShippingStatus() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-          const data = await res.json();
-          const city = data.address.city || data.address.town || data.address.village || "";
-          localStorage.setItem('user_city', city);
-          renderCart();
-        } catch (e) {
-          console.error('Location lookup failed', e);
-        }
-      });
-    }
     const userLocation = localStorage.getItem('user_city') || '';
     return userLocation.toLowerCase().includes('london');
   }
@@ -216,6 +201,31 @@
   }
 
   window.proceedToCheckout = () => {
+    const type = shippingMethodEl.value;
+    const isLocal = getLocalShippingStatus();
+    let shipping = 0;
+    const subtotal = cart.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
+
+    if (type === 'regular') shipping = subtotal > 100 ? 0 : 10;
+    if (type === 'fast') shipping = subtotal > 200 ? 0 : 15;
+    if (type === 'expedited') shipping = 35;
+    if (type === 'local') shipping = isLocal ? (subtotal > 100 ? 0 : 10) : 0;
+
+    const tax = (subtotal - couponDiscount - giftCardAmount + shipping) * 0.13;
+    const total = subtotal - couponDiscount - giftCardAmount + shipping + tax;
+
+    const checkoutData = {
+      shippingType: type,
+      isLocal,
+      shippingCost: shipping,
+      subtotal,
+      couponDiscount,
+      giftCardAmount,
+      tax,
+      total
+    };
+
+    localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
     window.location.href = 'checkout.html';
   }
 
@@ -238,6 +248,23 @@
   }
 
   shippingMethodEl.addEventListener('change', renderCart);
+
+  // Get user's location once on load
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+        const data = await res.json();
+        const city = data.address.city || data.address.town || data.address.village || "";
+        localStorage.setItem('user_city', city);
+        renderCart();
+      } catch (e) {
+        console.error('Location lookup failed', e);
+      }
+    });
+  }
 
   renderCart();
   loadRecommendations();
