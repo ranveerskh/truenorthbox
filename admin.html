@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - TrueNorthBox</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -111,7 +108,13 @@
     <div id="category-list"></div>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
+      query, where, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
       authDomain: "truenrothbox.firebaseapp.com",
@@ -120,8 +123,9 @@
       messagingSenderId: "103087965950",
       appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const form = document.getElementById('product-form');
     const productList = document.getElementById('product-list');
@@ -141,22 +145,26 @@
         isFeatured: form.isFeatured.checked,
         isBoxEligible: form.isBoxEligible.checked
       };
-      if (editingId) {
-        await db.collection('products').doc(editingId).update(data);
-        editingId = null;
-      } else {
-        await db.collection('products').add(data);
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), data);
+          editingId = null;
+        } else {
+          await addDoc(collection(db, 'products'), data);
+        }
+        form.reset();
+        loadProducts();
+      } catch (error) {
+        alert("Error saving product: " + error.message);
       }
-      form.reset();
-      loadProducts();
     });
 
     async function loadProducts() {
       productList.innerHTML = '<h2>Existing Products</h2>';
-      const snapshot = await db.collection('products').get();
+      const snapshot = await getDocs(collection(db, 'products'));
       const categories = new Set();
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         categories.add(data.category);
         const div = document.createElement('div');
         div.className = 'product-item';
@@ -165,8 +173,8 @@
           Price: $${data.price} | SKU: ${data.sku} | Stock: ${data.stock}<br>
           <img src="${data.imageUrl}" alt="${data.name}"><br>
           <div class="actions">
-            <button onclick='editProduct("${doc.id}", ${JSON.stringify(data).replace(/'/g, "\'").replace(/"/g, '&quot;')})'>Edit</button>
-            <button onclick='deleteProduct("${doc.id}")'>Delete</button>
+            <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
+            <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
           </div>
         `;
         productList.appendChild(div);
@@ -174,12 +182,7 @@
       loadCategories([...categories]);
     }
 
-    async function deleteProduct(id) {
-      await db.collection('products').doc(id).delete();
-      loadProducts();
-    }
-
-    function editProduct(id, data) {
+    window.editProduct = (id, data) => {
       editingId = id;
       form.name.value = data.name;
       form.price.value = data.price;
@@ -191,7 +194,12 @@
       form.isFeatured.checked = data.isFeatured;
       form.isBoxEligible.checked = data.isBoxEligible;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    };
+
+    window.deleteProduct = async (id) => {
+      await deleteDoc(doc(db, 'products', id));
+      loadProducts();
+    };
 
     function loadCategories(categories) {
       categoryList.innerHTML = '';
@@ -207,25 +215,26 @@
       });
     }
 
-    async function deleteCategory(category) {
-      const confirmDelete = confirm(`Delete all products in category: ${category}?`);
-      if (!confirmDelete) return;
-      const snapshot = await db.collection('products').where('category', '==', category).get();
-      const batch = db.batch();
-      snapshot.forEach(doc => batch.delete(doc.ref));
+    window.deleteCategory = async (category) => {
+      if (!confirm(`Delete all products in category: ${category}?`)) return;
+      const q = query(collection(db, 'products'), where('category', '==', category));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.forEach(docSnap => batch.delete(docSnap.ref));
       await batch.commit();
       loadProducts();
-    }
+    };
 
-    async function renameCategory(oldCat) {
+    window.renameCategory = async (oldCat) => {
       const newCat = prompt("Enter new category name:", oldCat);
       if (!newCat || newCat === oldCat) return;
-      const snapshot = await db.collection('products').where('category', '==', oldCat).get();
-      const batch = db.batch();
-      snapshot.forEach(doc => batch.update(doc.ref, { category: newCat }));
+      const q = query(collection(db, 'products'), where('category', '==', oldCat));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.forEach(docSnap => batch.update(docSnap.ref, { category: newCat }));
       await batch.commit();
       loadProducts();
-    }
+    };
 
     loadProducts();
   </script>
