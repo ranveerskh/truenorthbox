@@ -63,6 +63,12 @@
       background: #f0f0f0;
     }
 
+    .logout {
+      margin-left: 15px;
+      background: #e53e3e !important;
+      color: white;
+    }
+
     .container {
       max-width: 960px;
       margin: 20px auto;
@@ -75,12 +81,6 @@
     h2 {
       margin-bottom: 10px;
       text-align: center;
-    }
-
-    .filter-bar {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
     }
 
     select, input, textarea, button {
@@ -114,209 +114,251 @@
       cursor: pointer;
     }
 
-    .top-links {
-      text-align: center;
-      margin-top: 10px;
+    .category-actions input {
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      margin-right: 10px;
     }
 
-    .top-links a {
-      margin: 0 10px;
-      text-decoration: none;
-      color: #2f855a;
-      font-weight: bold;
+    .category-actions button {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      margin-right: 5px;
+      cursor: pointer;
     }
 
-    .logout {
-      margin-left: 15px;
-      background: #e53e3e !important;
+    .category-actions .update {
+      background: #2f855a;
+      color: white;
+    }
+
+    .category-actions .delete {
+      background: #e53e3e;
+      color: white;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="left">Admin Panel - TrueNorthBox</div>
-    <div class="right">
-      <button onclick="toggleDropdown()">Admin Tools ⏷</button>
-      <div id="dropdown-menu">
-        <a href="admin-orders.html" class="dropdown-link">📦 Orders</a>
-        <a href="admin-coupons.html" class="dropdown-link">🎟️ Coupons</a>
-        <a href="admin-giftcard.html" class="dropdown-link">💳 Gift Cards</a>
-        <a href="custom-requests.html" class="dropdown-link">📬 Custom Requests</a>
-        <a href="abandoned.html" class="dropdown-link">🕒 Abandoned Carts</a>
-        <a href="ambassadors.html" class="dropdown-link">👥 Ambassadors</a>
-        <a href="build-a-box.html" class="dropdown-link">📦 Build-A-Box</a>
-        <a href="history.html" class="dropdown-link">📜 Order History</a>
-        <a href="test-links.html" class="dropdown-link">🧪 Test Links</a>
-        <a href="admin.html" class="dropdown-link">🛠️ Product Manager</a>
-        <button class="dropdown-link logout" onclick="logout()">🚪 Logout</button>
-      </div>
+<header>
+  <div class="left">Admin Panel - TrueNorthBox</div>
+  <div class="right">
+    <button onclick="toggleDropdown()">Admin Tools ⏷</button>
+    <div id="dropdown-menu">
+      <a href="admin-orders.html" class="dropdown-link">📦 Orders</a>
+      <a href="admin-coupons.html" class="dropdown-link">🎟️ Coupons</a>
+      <a href="admin-giftcard.html" class="dropdown-link">💳 Gift Cards</a>
+      <a href="custom-requests.html" class="dropdown-link">📬 Custom Requests</a>
+      <a href="abandoned.html" class="dropdown-link">🕒 Abandoned Carts</a>
+      <a href="ambassadors.html" class="dropdown-link">👥 Ambassadors</a>
+      <a href="build-a-box.html" class="dropdown-link">📦 Build-A-Box</a>
+      <a href="history.html" class="dropdown-link">📜 Order History</a>
+      <a href="test-links.html" class="dropdown-link">🧪 Test Links</a>
+      <a href="admin.html" class="dropdown-link">🛠️ Product Manager</a>
+      <button class="dropdown-link logout" onclick="logout()">🚪 Logout</button>
     </div>
-  </header>
-
-  <div class="container">
-    <h2>Add / Edit Product</h2>
-    <form id="product-form">
-      <input type="text" id="name" placeholder="Product Name" required>
-      <input type="number" id="price" placeholder="Price" required>
-      <input type="text" id="sku" placeholder="SKU" required>
-      <input type="text" id="category" placeholder="Category" required>
-      <input type="text" id="imageUrl" placeholder="Image URL" required>
-      <textarea id="description" placeholder="Description"></textarea>
-      <input type="number" id="stock" placeholder="Stock" required>
-      <label><input type="checkbox" id="isFeatured"> Feature this product</label>
-      <label><input type="checkbox" id="isBoxEligible"> Include in Build-A-Box</label>
-      <button type="submit">Save Product</button>
-    </form>
   </div>
+</header>
 
-  <div class="container">
-    <h2>Existing Products (<span id="product-count">0</span>)</h2>
-    <div class="filter-bar">
-      <label>Filter by Category:
-        <select id="filter-category">
-          <option value="">All</option>
-        </select>
-      </label>
-    </div>
-    <div id="product-list"></div>
-  </div>
+<div class="container">
+  <h2>Add / Edit Product</h2>
+  <form id="product-form">
+    <input type="text" id="name" placeholder="Product Name" required>
+    <input type="number" id="price" placeholder="Price" required>
+    <input type="text" id="sku" placeholder="SKU" required>
+    <select id="category" required>
+      <option value="">Select Category</option>
+    </select>
+    <input type="text" id="imageUrl" placeholder="Image URL" required>
+    <textarea id="description" placeholder="Description"></textarea>
+    <input type="number" id="stock" placeholder="Stock" required>
+    <label><input type="checkbox" id="isFeatured"> Feature this product</label>
+    <label><input type="checkbox" id="isBoxEligible"> Include in Build-A-Box</label>
+    <button type="submit">Save Product</button>
+  </form>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where
-    } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+<div class="container">
+  <h2>Manage Categories</h2>
+  <form id="category-form">
+    <input type="text" id="new-category" placeholder="Enter new category" required>
+    <button type="submit">Add Category</button>
+  </form>
+  <div id="category-list"></div>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
-      authDomain: "truenrothbox.firebaseapp.com",
-      projectId: "truenrothbox",
-      storageBucket: "truenrothbox.appspot.com",
-      messagingSenderId: "103087965950",
-      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+<div class="container">
+  <h2>Existing Products (<span id="product-count">0</span>)</h2>
+  <div id="product-list"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.appspot.com",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const form = document.getElementById('product-form');
+  const categoryForm = document.getElementById('category-form');
+  const productList = document.getElementById('product-list');
+  const categoryList = document.getElementById('category-list');
+  const productCount = document.getElementById('product-count');
+  const categorySelect = document.getElementById('category');
+  let editingId = null;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      name: form.name.value,
+      price: parseFloat(form.price.value),
+      sku: form.sku.value,
+      category: form.category.value,
+      imageUrl: form.imageUrl.value,
+      description: form.description.value,
+      stock: parseInt(form.stock.value),
+      isFeatured: form.isFeatured.checked,
+      isBoxEligible: form.isBoxEligible.checked
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const form = document.getElementById('product-form');
-    const productList = document.getElementById('product-list');
-    const productCount = document.getElementById('product-count');
-    const categoryFilter = document.getElementById('filter-category');
-    let editingId = null;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = {
-        name: form.name.value,
-        price: parseFloat(form.price.value),
-        sku: form.sku.value,
-        category: form.category.value,
-        imageUrl: form.imageUrl.value,
-        description: form.description.value,
-        stock: parseInt(form.stock.value),
-        isFeatured: form.isFeatured.checked,
-        isBoxEligible: form.isBoxEligible.checked
-      };
-      try {
-        if (editingId) {
-          await updateDoc(doc(db, 'products', editingId), data);
-          editingId = null;
-        } else {
-          await addDoc(collection(db, 'products'), data);
-        }
-        form.reset();
-        loadProducts();
-      } catch (error) {
-        alert("Error saving product: " + error.message);
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'products', editingId), data);
+        editingId = null;
+      } else {
+        await addDoc(collection(db, 'products'), data);
       }
-    });
-
-    categoryFilter.addEventListener('change', loadProducts);
-
-    async function loadProducts() {
-      productList.innerHTML = '';
-      const snapshot = await getDocs(collection(db, 'products'));
-      const categories = new Set();
-      let count = 0;
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        categories.add(data.category);
-        const selected = categoryFilter.value;
-        if (selected && selected !== data.category) return;
-
-        count++;
-        const item = document.createElement('div');
-        item.className = 'product-item';
-        item.innerHTML = `
-          <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
-            <strong>${data.name}</strong> (${data.category})
-          </div>
-          <div class="product-details">
-            <p>Price: $${data.price}</p>
-            <p>SKU: ${data.sku}</p>
-            <p>Stock: ${data.stock}</p>
-            <p><img src="${data.imageUrl}" width="80"/></p>
-            <div class="actions">
-              <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
-              <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
-            </div>
-          </div>
-        `;
-        productList.appendChild(item);
-      });
-
-      productCount.textContent = count;
-
-      // Populate category filter
-      categoryFilter.innerHTML = '<option value="">All</option>';
-      [...categories].forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        categoryFilter.appendChild(opt);
-      });
-    }
-
-    window.editProduct = (id, data) => {
-      editingId = id;
-      form.name.value = data.name;
-      form.price.value = data.price;
-      form.sku.value = data.sku;
-      form.category.value = data.category;
-      form.imageUrl.value = data.imageUrl;
-      form.description.value = data.description;
-      form.stock.value = data.stock;
-      form.isFeatured.checked = data.isFeatured;
-      form.isBoxEligible.checked = data.isBoxEligible;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    window.deleteProduct = async (id) => {
-      await deleteDoc(doc(db, 'products', id));
+      form.reset();
       loadProducts();
-    };
+    } catch (error) {
+      alert("Error saving product: " + error.message);
+    }
+  });
 
-    window.toggleDropdown = function () {
-      const menu = document.getElementById('dropdown-menu');
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    };
+  categoryForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newCat = categoryForm['new-category'].value.trim();
+    if (!newCat) return;
+    await addDoc(collection(db, 'categories'), { name: newCat });
+    categoryForm.reset();
+    loadCategories();
+  });
 
-    window.logout = function () {
-      alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
-      window.location.href = "login.html";
-    };
-
-    window.addEventListener('click', function (e) {
-      const menu = document.getElementById('dropdown-menu');
-      if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
-        menu.style.display = 'none';
-      }
+  async function loadProducts() {
+    productList.innerHTML = '';
+    const snapshot = await getDocs(collection(db, 'products'));
+    let count = 0;
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      count++;
+      const item = document.createElement('div');
+      item.className = 'product-item';
+      item.innerHTML = `
+        <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+          <strong>${data.name}</strong> (${data.category})
+        </div>
+        <div class="product-details">
+          <p>Price: $${data.price}</p>
+          <p>SKU: ${data.sku}</p>
+          <p>Stock: ${data.stock}</p>
+          <p><img src="${data.imageUrl}" width="80"/></p>
+          <div class="actions">
+            <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
+            <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
+          </div>
+        </div>
+      `;
+      productList.appendChild(item);
     });
+    productCount.textContent = count;
+  }
 
+  async function loadCategories() {
+    categoryList.innerHTML = '';
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
+    const catSnapshot = await getDocs(collection(db, 'categories'));
+    catSnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const div = document.createElement('div');
+      div.className = 'category-actions';
+      div.innerHTML = `
+        <input value="${data.name}" id="edit-${docSnap.id}" />
+        <button class="update" onclick='updateCategory("${docSnap.id}")'>Update</button>
+        <button class="delete" onclick='deleteCategory("${docSnap.id}")'>Delete</button>
+      `;
+      categoryList.appendChild(div);
+      const opt = document.createElement('option');
+      opt.value = data.name;
+      opt.textContent = data.name;
+      categorySelect.appendChild(opt);
+    });
+  }
+
+  window.editProduct = (id, data) => {
+    editingId = id;
+    form.name.value = data.name;
+    form.price.value = data.price;
+    form.sku.value = data.sku;
+    form.category.value = data.category;
+    form.imageUrl.value = data.imageUrl;
+    form.description.value = data.description;
+    form.stock.value = data.stock;
+    form.isFeatured.checked = data.isFeatured;
+    form.isBoxEligible.checked = data.isBoxEligible;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.deleteProduct = async (id) => {
+    await deleteDoc(doc(db, 'products', id));
     loadProducts();
-  </script>
+  };
+
+  window.updateCategory = async (id) => {
+    const input = document.getElementById(`edit-${id}`);
+    const newName = input.value.trim();
+    if (!newName) return;
+    await updateDoc(doc(db, 'categories', id), { name: newName });
+    loadCategories();
+  };
+
+  window.deleteCategory = async (id) => {
+    if (confirm("Are you sure to delete this category?")) {
+      await deleteDoc(doc(db, 'categories', id));
+      loadCategories();
+    }
+  };
+
+  window.toggleDropdown = function () {
+    const menu = document.getElementById('dropdown-menu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.logout = function () {
+    alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
+    window.location.href = "login.html";
+  };
+
+  window.addEventListener('click', function (e) {
+    const menu = document.getElementById('dropdown-menu');
+    if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
+      menu.style.display = 'none';
+    }
+  });
+
+  loadProducts();
+  loadCategories();
+</script>
 </body>
 </html>
