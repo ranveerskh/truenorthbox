@@ -62,18 +62,28 @@
 <div class="container">
   <h2>Checkout</h2>
 
-  <input type="text" id="firstName" placeholder="First Name" required />
-  <input type="text" id="lastName" placeholder="Last Name" required />
-  <input type="email" id="email" placeholder="Email" required />
-  <input type="tel" id="phone" placeholder="Phone" required />
-  <input type="text" id="address" placeholder="Street Address" required />
-  <input type="text" id="city" placeholder="City" required />
-  <input type="text" id="province" placeholder="Province" required />
-  <input type="text" id="country" placeholder="Country" value="Canada" required />
-  <input type="text" id="postalCode" placeholder="Postal Code" required />
+  <form id="orderForm" action="https://formsubmit.co/ranveersflex@gmail.com" method="POST">
+    <!-- Hidden Email Fields -->
+    <input type="hidden" name="_subject" value="🧾 New Order - True North Box">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_next" value="https://truenorthbox.com/thank-you.html">
+    <input type="hidden" name="_cc" id="cc-email">
+    <input type="hidden" name="Order Summary" id="email-summary">
 
-  <div class="summary" id="order-summary"></div>
-  <button onclick="placeOrder()">Place Order</button>
+    <input type="text" id="firstName" name="First Name" placeholder="First Name" required />
+    <input type="text" id="lastName" name="Last Name" placeholder="Last Name" required />
+    <input type="email" id="email" name="Customer Email" placeholder="Email" required />
+    <input type="tel" id="phone" name="Phone Number" placeholder="Phone" required />
+    <input type="text" id="address" name="Street Address" placeholder="Street Address" required />
+    <input type="text" id="city" name="City" placeholder="City" required />
+    <input type="text" id="province" name="Province" placeholder="Province" required />
+    <input type="text" id="country" name="Country" placeholder="Country" value="Canada" required />
+    <input type="text" id="postalCode" name="Postal Code" placeholder="Postal Code" required />
+
+    <div class="summary" id="order-summary"></div>
+    <button type="submit">Place Order</button>
+  </form>
 </div>
 
 <script type="module">
@@ -94,7 +104,6 @@
 
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const checkoutData = JSON.parse(localStorage.getItem('checkoutData'));
-
   const summaryEl = document.getElementById('order-summary');
 
   if (!checkoutData) {
@@ -111,30 +120,28 @@
     `;
   }
 
-  // Save email/phone to localStorage for abandoned cart
+  // Save email/phone
   document.getElementById('email').addEventListener('input', e => {
     localStorage.setItem('email', e.target.value);
-  });
-  document.getElementById('phone').addEventListener('input', e => {
-    localStorage.setItem('phone', e.target.value);
+    document.getElementById('cc-email').value = e.target.value;
   });
 
-  window.placeOrder = async () => {
-    if (cart.length === 0 || !checkoutData) {
-      alert('Missing cart or shipping data.');
-      return;
-    }
+  // Send order to Firebase and update hidden field
+  document.getElementById('orderForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (cart.length === 0 || !checkoutData) return alert('Missing cart or shipping data.');
 
+    const form = e.target;
     const order = {
-      firstName: document.getElementById('firstName').value.trim(),
-      lastName: document.getElementById('lastName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      address: document.getElementById('address').value.trim(),
-      city: document.getElementById('city').value.trim(),
-      province: document.getElementById('province').value.trim(),
-      country: document.getElementById('country').value.trim(),
-      postalCode: document.getElementById('postalCode').value.trim(),
+      firstName: form["First Name"].value,
+      lastName: form["Last Name"].value,
+      email: form["Customer Email"].value,
+      phone: form["Phone Number"].value,
+      address: form["Street Address"].value,
+      city: form["City"].value,
+      province: form["Province"].value,
+      country: form["Country"].value,
+      postalCode: form["Postal Code"].value,
       paymentMethod: 'Cash on Delivery',
       shippingMethod: checkoutData.shippingType,
       isLocal: checkoutData.isLocal,
@@ -151,23 +158,25 @@
 
     try {
       await addDoc(collection(db, 'orders'), order);
-
-      // Remove abandoned cart entry
       const abandonedId = localStorage.getItem('abandoned_cart_id');
       if (abandonedId) {
         await deleteDoc(doc(db, 'abandonedCarts', abandonedId));
         localStorage.removeItem('abandoned_cart_id');
       }
 
-      alert('Order placed successfully!');
+      // Prepare email summary
+      const summary = cart.map(i => `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)}`).join('\n');
+      document.getElementById('email-summary').value = summary + `\n\nTotal: $${checkoutData.total.toFixed(2)}`;
+
+      form.submit();
+
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
-      window.location.href = 'index.html';
     } catch (err) {
       console.error('Error placing order', err);
       alert('Failed to place order.');
     }
-  };
+  });
 </script>
 
 </body>
