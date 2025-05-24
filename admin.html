@@ -15,9 +15,44 @@
       background-color: #2f855a;
       color: white;
       padding: 20px;
-      text-align: center;
       font-size: 1.5rem;
     }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-bar button {
+      background: #2f855a;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .dropdown-link {
+      display: block;
+      padding: 10px 20px;
+      color: #2f855a;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .dropdown-link:hover {
+      background: #f0f0f0;
+    }
+    #dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 20px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
     .container {
       max-width: 960px;
       margin: 20px auto;
@@ -76,10 +111,27 @@
   </style>
 </head>
 <body>
-  <header>Admin Panel - TrueNorthBox</header>
+
+  <header class="top-bar">
+    <div>Admin Panel - TrueNorthBox</div>
+    <div style="position: relative;">
+      <button onclick="toggleDropdown()">Admin Tools ⏷</button>
+      <div id="dropdown-menu">
+        <a href="admin-orders.html" class="dropdown-link">📦 Orders</a>
+        <a href="admin-coupons.html" class="dropdown-link">🎟️ Coupons</a>
+        <a href="admin-giftcard.html" class="dropdown-link">💳 Gift Cards</a>
+        <a href="custom-requests.html" class="dropdown-link">📬 Custom Requests</a>
+        <a href="abandoned.html" class="dropdown-link">🕒 Abandoned Carts</a>
+        <a href="ambassadors.html" class="dropdown-link">👥 Ambassadors</a>
+        <a href="build-a-box.html" class="dropdown-link">📦 Build-A-Box</a>
+        <a href="history.html" class="dropdown-link">📜 Order History</a>
+        <a href="test-links.html" class="dropdown-link">🧪 Test Links</a>
+        <a href="admin.html" class="dropdown-link">🛠️ Product Manager</a>
+      </div>
+    </div>
+  </header>
 
   <div class="top-links">
-    <a href="admin-orders.html">View Orders</a>
     <a href="https://postimages.org/" target="_blank">Upload Image</a>
   </div>
 
@@ -119,7 +171,7 @@
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
       authDomain: "truenrothbox.firebaseapp.com",
       projectId: "truenrothbox",
-      storageBucket: "truenrothbox.firebasestorage.app",
+      storageBucket: "truenrothbox.appspot.com",
       messagingSenderId: "103087965950",
       appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
@@ -237,6 +289,19 @@
     };
 
     loadProducts();
+
+    // Dropdown logic
+    window.toggleDropdown = function () {
+      const menu = document.getElementById('dropdown-menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.addEventListener('click', function (e) {
+      const menu = document.getElementById('dropdown-menu');
+      if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
+        menu.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
