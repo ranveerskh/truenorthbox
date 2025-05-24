@@ -110,11 +110,11 @@
   const itemsContainer = document.getElementById('items');
   const messageEl = document.getElementById('message');
 
-  function addItem() {
+  window.addItem = function () {
     const input = document.createElement('input');
     input.type = "text";
-    input.placeholder = `Item ${itemsContainer.children.length + 1}`;
     input.required = true;
+    input.placeholder = `Item ${itemsContainer.children.length + 1}`;
     itemsContainer.appendChild(input);
   }
 
@@ -123,8 +123,8 @@
     for (let i = 1; i <= 5; i++) {
       const input = document.createElement('input');
       input.type = "text";
-      input.placeholder = `Item ${i}`;
       input.required = true;
+      input.placeholder = `Item ${i}`;
       itemsContainer.appendChild(input);
     }
   }
@@ -167,7 +167,8 @@
     }
   });
 
-  renderInitialItems(); // load initial 5 fields
+  // Load initial 5 fields on page load
+  renderInitialItems();
 </script>
 
 </body>
