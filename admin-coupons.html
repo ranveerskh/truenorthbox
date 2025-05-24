@@ -2,33 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Coupon Generator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coupon Manager - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f5f5f5;
-      padding: 30px;
+      padding: 20px;
     }
 
     h2 {
       text-align: center;
-      color: #333;
+      color: #2f855a;
     }
 
-    .form-container {
+    .form-container, .list-container {
       background: white;
-      max-width: 500px;
-      margin: auto;
-      padding: 25px;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
     input, select, button {
       width: 100%;
-      margin-top: 15px;
-      padding: 12px;
+      margin: 10px 0;
+      padding: 10px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -45,22 +45,43 @@
       background-color: #276749;
     }
 
-    .message {
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 15px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    .action-btn {
+      padding: 5px 10px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .edit-btn { background: #3182ce; color: white; }
+    .delete-btn { background: #e53e3e; color: white; }
+    .toggle-btn { background: #d69e2e; color: white; }
+
+    .message {
       text-align: center;
+      margin-top: 10px;
     }
 
-    .success {
-      color: green;
-    }
-
-    .error {
-      color: red;
-    }
+    .success { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <h2>Create Coupon</h2>
+  <h2>Admin Coupon Manager</h2>
+
   <div class="form-container">
     <input type="text" id="code" placeholder="Coupon Code (e.g. GIFT15)" />
     <input type="number" id="discount" placeholder="Discount % (e.g. 15)" min="1" max="100" />
@@ -69,14 +90,30 @@
       <option value="deactive">Deactive</option>
     </select>
     <input type="number" id="usageLimit" placeholder="Max Usage (e.g. 5)" min="1" />
-    <button onclick="createCoupon()">Generate Coupon</button>
+    <button onclick="createOrUpdateCoupon()">Save Coupon</button>
+    <input type="hidden" id="editId">
     <div class="message" id="message"></div>
   </div>
 
-  <!-- Firebase -->
+  <div class="list-container">
+    <h3>Existing Coupons</h3>
+    <table id="couponTable">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Discount</th>
+          <th>Status</th>
+          <th>Used/Limit</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -89,13 +126,16 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const couponRef = collection(db, "coupons");
 
-    window.createCoupon = async function () {
-      const code = document.getElementById('code').value.trim();
+    const message = document.getElementById('message');
+
+    async function createOrUpdateCoupon() {
+      const code = document.getElementById('code').value.trim().toUpperCase();
       const discount = parseInt(document.getElementById('discount').value.trim());
       const status = document.getElementById('status').value;
       const usageLimit = parseInt(document.getElementById('usageLimit').value.trim());
-      const message = document.getElementById('message');
+      const editId = document.getElementById('editId').value;
 
       if (!code || !discount || !usageLimit) {
         message.innerHTML = `<span class="error">All fields are required.</span>`;
@@ -103,25 +143,67 @@
       }
 
       try {
-        await addDoc(collection(db, "coupons"), {
-          code: code.toUpperCase(),
-          discount,
-          status,
-          usageLimit,
-          used: 0,
-          createdAt: serverTimestamp()
-        });
+        if (editId) {
+          const docRef = doc(db, "coupons", editId);
+          await updateDoc(docRef, { code, discount, status, usageLimit });
+          message.innerHTML = `<span class="success">Coupon updated!</span>`;
+        } else {
+          await addDoc(couponRef, { code, discount, status, usageLimit, used: 0 });
+          message.innerHTML = `<span class="success">Coupon created!</span>`;
+        }
 
-        message.innerHTML = `<span class="success">Coupon created successfully!</span>`;
         document.getElementById('code').value = '';
         document.getElementById('discount').value = '';
         document.getElementById('usageLimit').value = '';
         document.getElementById('status').value = 'active';
-      } catch (error) {
-        console.error("Error adding coupon: ", error);
-        message.innerHTML = `<span class="error">Error creating coupon.</span>`;
+        document.getElementById('editId').value = '';
+      } catch (err) {
+        console.error(err);
+        message.innerHTML = `<span class="error">Error saving coupon.</span>`;
       }
     }
+
+    function renderCoupons(snapshot) {
+      const tbody = document.querySelector('#couponTable tbody');
+      tbody.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const c = docSnap.data();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${c.code}</td>
+          <td>${c.discount}%</td>
+          <td>${c.status}</td>
+          <td>${c.used || 0}/${c.usageLimit}</td>
+          <td>
+            <button class="action-btn edit-btn" onclick="editCoupon('${docSnap.id}', '${c.code}', ${c.discount}, '${c.status}', ${c.usageLimit})">Edit</button>
+            <button class="action-btn delete-btn" onclick="deleteCoupon('${docSnap.id}')">Delete</button>
+            <button class="action-btn toggle-btn" onclick="toggleStatus('${docSnap.id}', '${c.status}')">${c.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    window.editCoupon = function(id, code, discount, status, usageLimit) {
+      document.getElementById('code').value = code;
+      document.getElementById('discount').value = discount;
+      document.getElementById('status').value = status;
+      document.getElementById('usageLimit').value = usageLimit;
+      document.getElementById('editId').value = id;
+    }
+
+    window.deleteCoupon = async function(id) {
+      if (confirm("Delete this coupon?")) {
+        await deleteDoc(doc(db, "coupons", id));
+      }
+    }
+
+    window.toggleStatus = async function(id, currentStatus) {
+      const newStatus = currentStatus === "active" ? "deactive" : "active";
+      await updateDoc(doc(db, "coupons", id), { status: newStatus });
+    }
+
+    onSnapshot(couponRef, (snapshot) => renderCoupons(snapshot));
   </script>
 </body>
 </html>
