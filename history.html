@@ -20,6 +20,7 @@
     .note { font-style: italic; color: #666; margin-top: 4px; }
     .filters { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
     .filters label { margin-right: 5px; }
+    .confirmation { color: green; font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -129,7 +130,8 @@
                 <option value="Shipped" ${data.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
                 <option value="Delivered" ${data.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
               </select>
-              <button onclick="markPaymentReceived('${docSnap.id}')" style="margin-left: 15px;">Payment Received</button>
+              <button onclick="markPaymentReceived('${docSnap.id}', this)" style="margin-left: 15px;">Mark as Payment Received</button>
+              <span class="confirmation" style="display:none;">Invoice Sent ✅</span>
             </p>
 
             <div class="items">
@@ -160,12 +162,10 @@
     body.style.display = body.style.display === 'block' ? 'none' : 'block';
   };
 
-  window.markPaymentReceived = async (orderId) => {
-    await updateDoc(doc(db, "orders", orderId), {
-      paymentReceived: true
-    });
-    alert("Payment marked as received!");
-    loadOrders();
+  window.markPaymentReceived = async (orderId, btn) => {
+    await updateDoc(doc(db, "orders", orderId), { paymentReceived: true });
+    btn.textContent = 'Payment Received ✅';
+    btn.disabled = true;
   };
 
   window.updateStatus = async (select) => {
@@ -173,28 +173,43 @@
     const status = select.value;
 
     await updateDoc(doc(db, 'orders', orderId), { status });
-    alert('Status updated!');
 
     if (status === "Delivered") {
       const snapshot = await getDocs(collection(db, "orders"));
       const docSnap = snapshot.docs.find(d => d.id === orderId);
       const data = docSnap.data();
-      sendInvoiceEmail(data);
+      sendInvoiceEmail(data, select);
     }
 
     loadOrders();
   };
 
-  function sendInvoiceEmail(data) {
+  function sendInvoiceEmail(data, selectEl) {
     const form = document.createElement('form');
-    form.action = "https://formsubmit.co/ajax/ranveersflex@gmail.com"; // ⬅ Replace this with your email
+    form.action = "https://formsubmit.co/ajax/ranveersflex@gmail.com";
     form.method = "POST";
     form.style.display = "none";
 
     const fields = {
-      _subject: `Your Invoice from True North Box – ${data.orderId}`,
-      message: `Hi ${data.firstName},\n\nYour order (${data.orderId}) has been delivered.\n\nTotal: $${data.total.toFixed(2)}\nThank you for shopping with us!\n\nBest,\nTrue North Box`,
-      email: data.email
+      _subject: `Invoice: Your Order ${data.orderId} is Delivered`,
+      email: data.email,
+      message: `
+Hi ${data.firstName},
+
+Your order has been delivered. Here is your invoice:
+
+Order ID: ${data.orderId}
+Total: $${data.total.toFixed(2)}
+Items:
+${data.items.map(i => `${i.name} - ${i.quantity} x $${i.price}`).join('\n')}
+
+Shipping: ${data.shippingMethod} ($${data.shippingCost})
+Tax: $${data.tax}
+Discounts: Coupon $${data.couponDiscount}, GiftCard $${data.giftCardAmount}
+
+Thank you for shopping with us!
+- True North Box
+      `.trim()
     };
 
     for (const key in fields) {
@@ -206,6 +221,10 @@
 
     document.body.appendChild(form);
     form.submit();
+
+    // show confirmation message near dropdown
+    const confirmMsg = selectEl.parentElement.querySelector('.confirmation');
+    if (confirmMsg) confirmMsg.style.display = 'inline';
   }
 
   onAuthStateChanged(auth, user => {
