@@ -56,7 +56,11 @@
     </div>
   </div>
 
-  <div id="orders"></div>
+  <h3 style="color: green;">✅ Paid Orders</h3>
+  <div id="paidOrders"></div>
+
+  <h3 style="color: red;">❌ Unpaid Orders</h3>
+  <div id="unpaidOrders"></div>
 </div>
 
 <script type="module">
@@ -77,14 +81,14 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  const ordersEl = document.getElementById('orders');
   const statusFilter = document.getElementById('statusFilter');
   const monthFilter = document.getElementById('monthFilter');
   const searchInput = document.getElementById('searchInput');
 
   const loadOrders = async () => {
     const snapshot = await getDocs(collection(db, "orders"));
-    let html = '';
+    let paidHTML = '';
+    let unpaidHTML = '';
 
     const searchTerm = searchInput.value.toLowerCase().trim();
     const statusVal = statusFilter.value;
@@ -105,7 +109,7 @@
 
       if (!matchesStatus || !matchesMonth || !matchesSearch) return;
 
-      html += `
+      const orderHTML = `
         <div class="order">
           <div class="order-header" onclick="toggleOrderBody(this)">
             <div><strong>${data.orderId || 'Not Found'}</strong> – ${data.firstName} ${data.lastName}</div>
@@ -152,9 +156,16 @@
           </div>
         </div>
       `;
+
+      if (data.paymentReceived) {
+        paidHTML += orderHTML;
+      } else {
+        unpaidHTML += orderHTML;
+      }
     });
 
-    ordersEl.innerHTML = html;
+    document.getElementById('paidOrders').innerHTML = paidHTML;
+    document.getElementById('unpaidOrders').innerHTML = unpaidHTML;
   };
 
   window.toggleOrderBody = (header) => {
@@ -166,12 +177,12 @@
     await updateDoc(doc(db, "orders", orderId), { paymentReceived: true });
     btn.textContent = 'Payment Received ✅';
     btn.disabled = true;
+    loadOrders();
   };
 
   window.updateStatus = async (select) => {
     const orderId = select.getAttribute('data-id');
     const status = select.value;
-
     await updateDoc(doc(db, 'orders', orderId), { status });
 
     if (status === "Delivered") {
@@ -196,19 +207,37 @@
       message: `
 Hi ${data.firstName},
 
-Your order has been delivered. Here is your invoice:
+Your order has been delivered. Please find your invoice below:
 
+===============================
+INVOICE - True North Box
+===============================
 Order ID: ${data.orderId}
-Total: $${data.total.toFixed(2)}
+Name: ${data.firstName} ${data.lastName}
+Email: ${data.email}
+Phone: ${data.phone}
+Date: ${new Date(data.createdAt).toLocaleString()}
+-------------------------------
+Shipping Address:
+${data.address}, ${data.city}, ${data.province}, ${data.postalCode}, ${data.country}
+-------------------------------
+Payment Method: ${data.paymentMethod}
+-------------------------------
 Items:
-${data.items.map(i => `${i.name} - ${i.quantity} x $${i.price}`).join('\n')}
-
-Shipping: ${data.shippingMethod} ($${data.shippingCost})
-Tax: $${data.tax}
-Discounts: Coupon $${data.couponDiscount}, GiftCard $${data.giftCardAmount}
+${data.items.map(i => `• ${i.name} – ${i.quantity} x $${i.price.toFixed(2)} = $${(i.price * i.quantity).toFixed(2)}`).join('\n')}
+-------------------------------
+Subtotal: $${data.subtotal.toFixed(2)}
+Shipping (${data.shippingMethod}): $${data.shippingCost.toFixed(2)}
+Discounts:
+  - Coupon: $${data.couponDiscount.toFixed(2)}
+  - Gift Card: $${data.giftCardAmount.toFixed(2)}
+Tax: $${data.tax.toFixed(2)}
+-------------------------------
+TOTAL: $${data.total.toFixed(2)}
+===============================
 
 Thank you for shopping with us!
-- True North Box
+Team True North Box
       `.trim()
     };
 
@@ -222,7 +251,6 @@ Thank you for shopping with us!
     document.body.appendChild(form);
     form.submit();
 
-    // show confirmation message near dropdown
     const confirmMsg = selectEl.parentElement.querySelector('.confirmation');
     if (confirmMsg) confirmMsg.style.display = 'inline';
   }
