@@ -53,7 +53,7 @@
       const data = docSnap.data();
       html += `
         <div class="order">
-          <p class="order-id">Order ID: ${data.orderId || 'N/A'}</p>
+          <p class="order-id">Order ID: ${data.orderId || 'Not Found'}</p>
           <p><strong>Customer:</strong> ${data.firstName} ${data.lastName} (${data.email})</p>
           <p><strong>Phone:</strong> ${data.phone}</p>
           <p><strong>Address:</strong> ${data.address}, ${data.city}, ${data.province}, ${data.postalCode}, ${data.country}</p>
