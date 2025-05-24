@@ -22,7 +22,7 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 10px;
       margin: 10px 0;
@@ -80,6 +80,7 @@
     <input type="text" id="province" name="Province" placeholder="Province" required />
     <input type="text" id="country" name="Country" placeholder="Country" value="Canada" required />
     <input type="text" id="postalCode" name="Postal Code" placeholder="Postal Code" required />
+    <textarea id="orderNote" name="Order Note" placeholder="Leave a note (optional)"></textarea>
 
     <div class="summary" id="order-summary"></div>
     <button type="submit">Place Order</button>
@@ -120,13 +121,13 @@
     `;
   }
 
-  // Save email/phone
+  // Save email and sync to hidden field
   document.getElementById('email').addEventListener('input', e => {
     localStorage.setItem('email', e.target.value);
     document.getElementById('cc-email').value = e.target.value;
   });
 
-  // Send order to Firebase and update hidden field
+  // Submit order to Firebase and email
   document.getElementById('orderForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     if (cart.length === 0 || !checkoutData) return alert('Missing cart or shipping data.');
@@ -142,6 +143,7 @@
       province: form["Province"].value,
       country: form["Country"].value,
       postalCode: form["Postal Code"].value,
+      note: form["Order Note"].value.trim(),
       paymentMethod: 'Cash on Delivery',
       shippingMethod: checkoutData.shippingType,
       isLocal: checkoutData.isLocal,
@@ -158,17 +160,22 @@
 
     try {
       await addDoc(collection(db, 'orders'), order);
+
       const abandonedId = localStorage.getItem('abandoned_cart_id');
       if (abandonedId) {
         await deleteDoc(doc(db, 'abandonedCarts', abandonedId));
         localStorage.removeItem('abandoned_cart_id');
       }
 
-      // Prepare email summary
-      const summary = cart.map(i => `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)}`).join('\n');
-      document.getElementById('email-summary').value = summary + `\n\nTotal: $${checkoutData.total.toFixed(2)}`;
+      // Prepare summary for email
+      const summary = cart.map(i =>
+        `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)} - SKU: ${i.sku || 'N/A'}`
+      ).join('\n');
 
-      form.submit();
+      document.getElementById('email-summary').value =
+        summary + `\n\nTotal: $${checkoutData.total.toFixed(2)}\nPayment Method: Cash on Delivery`;
+
+      form.submit(); // finally send email via FormSubmit
 
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
