@@ -68,14 +68,14 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
     authDomain: "truenrothbox.firebaseapp.com",
     projectId: "truenrothbox",
-    storageBucket: "truenrothbox.firebasestorage.app",
+    storageBucket: "truenrothbox.appspot.com",
     messagingSenderId: "103087965950",
     appId: "1:103087965950:web:cc552e40fc69a3d29047af"
   };
@@ -95,43 +95,50 @@
     const code = document.getElementById('coupon-code').value.trim();
     if (!code) return;
 
-    const couponDoc = await getDoc(doc(db, 'coupons', code));
-    const giftDoc = await getDoc(doc(db, 'giftcards', code));
+    let validCoupon = null;
+    let couponId = '';
+    const couponRef = collection(db, 'coupons');
+    const snapshot = await getDocs(couponRef);
 
-    if (couponDoc.exists()) {
-      couponDiscount = couponDoc.data().discount || 0;
-      alert('Coupon applied!');
-    } else {
-      couponDiscount = 0;
-    }
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (
+        data.code?.toLowerCase() === code.toLowerCase() &&
+        data.status === "active" &&
+        data.used < data.maxUses
+      ) {
+        validCoupon = data;
+        couponId = docSnap.id;
+      }
+    });
+
+    const giftDoc = await getDoc(doc(db, 'giftcards', code));
+    let isGiftCard = false;
 
     if (giftDoc.exists()) {
       giftCardAmount = giftDoc.data().amount || 0;
-      alert('Gift card redeemed!');
-    } else {
+      alert(`Gift card of $${giftCardAmount} applied!`);
+      isGiftCard = true;
+    }
+
+    if (validCoupon) {
+      const subtotal = cart.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
+      couponDiscount = (subtotal * validCoupon.discount) / 100;
+      alert(`${validCoupon.discount}% coupon applied!`);
+
+      await setDoc(doc(db, "coupons", couponId), {
+        ...validCoupon,
+        used: validCoupon.used + 1
+      });
+    }
+
+    if (!validCoupon && !giftDoc.exists()) {
+      alert('Invalid or expired code.');
+      couponDiscount = 0;
       giftCardAmount = 0;
     }
 
-    if (!couponDoc.exists() && !giftDoc.exists()) {
-      alert('Invalid code.');
-    }
-
     renderCart();
-  }
-
-  function getLocalShippingStatus() {
-    const userLocation = localStorage.getItem('user_city') || '';
-    return userLocation.toLowerCase().includes('london');
-  }
-
-  function getShippingLabel(type, isLocal) {
-    const map = {
-      regular: 'Regular',
-      fast: 'Fast',
-      expedited: 'Expedited',
-      local: `Local${isLocal ? ' - London ON' : ''}`
-    };
-    return map[type] || type;
   }
 
   function renderCart() {
@@ -168,7 +175,7 @@
     });
 
     const type = shippingMethodEl.value;
-    const isLocal = getLocalShippingStatus();
+    const isLocal = (localStorage.getItem('user_city') || '').toLowerCase().includes('london');
     let shipping = 0;
     if (type === 'regular') shipping = subtotal > 100 ? 0 : 10;
     if (type === 'fast') shipping = subtotal > 200 ? 0 : 15;
@@ -180,14 +187,12 @@
 
     cartSummaryEl.innerHTML = `
       <p>Subtotal: $${subtotal.toFixed(2)}</p>
-      <p>Shipping (${getShippingLabel(type, isLocal)}): $${shipping.toFixed(2)}</p>
+      <p>Shipping: $${shipping.toFixed(2)}</p>
       <p>Coupon Discount: -$${couponDiscount.toFixed(2)}</p>
       <p>Gift Card: -$${giftCardAmount.toFixed(2)}</p>
       <p>Tax (13%): $${tax.toFixed(2)}</p>
       <p><strong>Total: $${total.toFixed(2)}</strong></p>
     `;
-
-    saveAbandonedCartLive(); // Save/update abandoned cart every time cart updates
   }
 
   window.updateQuantity = (index, value) => {
@@ -204,10 +209,9 @@
 
   window.proceedToCheckout = () => {
     const type = shippingMethodEl.value;
-    const isLocal = getLocalShippingStatus();
+    const subtotal = cart.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
+    const isLocal = (localStorage.getItem('user_city') || '').toLowerCase().includes('london');
     let shipping = 0;
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
-
     if (type === 'regular') shipping = subtotal > 100 ? 0 : 10;
     if (type === 'fast') shipping = subtotal > 200 ? 0 : 15;
     if (type === 'expedited') shipping = 35;
@@ -231,44 +235,6 @@
     window.location.href = 'checkout.html';
   }
 
-  async function loadRecommendations() {
-    const q = query(collection(db, "products"), where("isFeatured", "==", true));
-    const snapshot = await getDocs(q);
-    const grid = document.getElementById('recommend-grid');
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const box = document.createElement('div');
-      box.className = 'box';
-      box.innerHTML = `
-        <img src="${data.imageUrl}" />
-        <h4>${data.name}</h4>
-        <p>$${data.price}</p>
-      `;
-      box.onclick = () => window.location.href = `product.html?id=${doc.id}`;
-      grid.appendChild(box);
-    });
-  }
-
-  async function saveAbandonedCartLive() {
-    const email = localStorage.getItem('email') || '';
-    const phone = localStorage.getItem('phone') || '';
-    const id = localStorage.getItem('abandoned_cart_id') || `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-
-    const data = {
-      cart,
-      email,
-      phone,
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      await setDoc(doc(db, 'abandonedCarts', id), data);
-      localStorage.setItem('abandoned_cart_id', id);
-    } catch (err) {
-      console.error('Failed to save abandoned cart:', err);
-    }
-  }
-
   shippingMethodEl.addEventListener('change', renderCart);
 
   if (navigator.geolocation) {
@@ -287,9 +253,26 @@
     });
   }
 
+  async function loadRecommendations() {
+    const q = query(collection(db, "products"), where("isFeatured", "==", true));
+    const snapshot = await getDocs(q);
+    const grid = document.getElementById('recommend-grid');
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.innerHTML = `
+        <img src="${data.imageUrl}" />
+        <h4>${data.name}</h4>
+        <p>$${data.price}</p>
+      `;
+      box.onclick = () => window.location.href = `product.html?id=${doc.id}`;
+      grid.appendChild(box);
+    });
+  }
+
   renderCart();
   loadRecommendations();
 </script>
-
 </body>
 </html>
