@@ -3,62 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Custom Box Requests - Admin</title>
+  <title>Custom Requests - Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background: #f9f9f9;
       padding: 20px;
     }
     .container {
-      max-width: 1200px;
+      max-width: 1000px;
       margin: auto;
       background: white;
-      padding: 30px;
+      padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      text-align: center;
+    }
+    .filters {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
     }
     .request {
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-    }
-    .request p {
-      margin: 4px 0;
-    }
-    .items {
-      margin-left: 20px;
-      font-size: 0.95rem;
-    }
-    .items li {
-      margin-bottom: 5px;
-    }
-    .manual-cart {
-      margin-top: 20px;
-      padding: 10px;
-      background: #f8f8f8;
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
       border-radius: 6px;
     }
-    .manual-cart input {
-      margin: 5px 5px 5px 0;
-    }
-    .manual-cart .group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .manual-cart button {
+    .details {
+      display: none;
       margin-top: 10px;
     }
-    .cart-link {
-      margin-top: 10px;
-      background: #d4edda;
-      padding: 8px;
-      border-radius: 5px;
-      font-size: 0.9rem;
+    .critical {
+      color: red;
+      font-weight: bold;
+    }
+    .badge {
+      background: #eee;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.8rem;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -66,12 +54,24 @@
 
 <div class="container">
   <h2>Custom Box Requests</h2>
+
+  <div class="filters">
+    <select id="monthFilter">
+      <option value="">All Months</option>
+    </select>
+    <select id="statusFilter">
+      <option value="">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="fulfilled">Fulfilled</option>
+    </select>
+  </div>
+
   <div id="requestList"></div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -85,94 +85,96 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const listEl = document.getElementById("requestList");
+  const monthEl = document.getElementById("monthFilter");
+  const statusEl = document.getElementById("statusFilter");
+
+  let allRequests = [];
+
+  function getMonthName(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+  }
+
+  function isCritical(deliveryDate) {
+    const today = new Date();
+    const due = new Date(deliveryDate);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    return diff <= 2 && diff >= 0;
+  }
+
+  function buildMonthOptions() {
+    const months = [...new Set(allRequests.map(r => getMonthName(r.deliveryDate)))];
+    months.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      monthEl.appendChild(opt);
+    });
+  }
+
+  function renderRequests() {
+    const monthFilter = monthEl.value;
+    const statusFilter = statusEl.value;
+
+    listEl.innerHTML = '';
+
+    allRequests.forEach((data, index) => {
+      const id = data.id;
+      const deliveryMonth = getMonthName(data.deliveryDate);
+      const matchMonth = !monthFilter || monthFilter === deliveryMonth;
+      const matchStatus = !statusFilter || statusFilter === data.status;
+
+      if (!matchMonth || !matchStatus) return;
+
+      const critical = isCritical(data.deliveryDate);
+      const box = document.createElement('div');
+      box.className = 'request';
+      box.innerHTML = `
+        <p>
+          <strong>${data.name}</strong>
+          <span class="badge">${data.status}</span>
+          ${critical ? '<span class="critical">⚠ Critical</span>' : ''}
+        </p>
+        <p><strong>Delivery:</strong> ${data.deliveryDate}</p>
+        <button onclick="document.getElementById('details-${index}').style.display='block'">View Details</button>
+        <div class="details" id="details-${index}">
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Phone:</strong> ${data.phone}</p>
+          <p><strong>Note:</strong> ${data.note || '—'}</p>
+          <p><strong>Items:</strong> <ul>${data.items.map(i => `<li>${i}</li>`).join('')}</ul></p>
+          <label>Status:
+            <select onchange="updateStatus('${id}', this.value)">
+              <option value="pending" ${data.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="fulfilled" ${data.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
+            </select>
+          </label>
+        </div>
+      `;
+      listEl.appendChild(box);
+    });
+  }
 
   async function loadRequests() {
     const snapshot = await getDocs(collection(db, "customBoxes"));
-    let html = '';
+    allRequests = [];
 
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-
-      const items = data.items.map(item => `<li>${item}</li>`).join('');
-
-      html += `
-        <div class="request" data-id="${id}">
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>Phone:</strong> ${data.phone}</p>
-          <p><strong>Delivery Date:</strong> ${data.deliveryDate}</p>
-          <p><strong>Note:</strong> ${data.note || '—'}</p>
-          <p><strong>Items Requested:</strong></p>
-          <ul class="items">${items}</ul>
-
-          <div class="status-update">
-            <label>Status: 
-              <select data-status-id="${id}" onchange="updateStatus(this)">
-                <option value="pending" ${data.status === 'pending' ? 'selected' : ''}>Pending</option>
-                <option value="processed" ${data.status === 'processed' ? 'selected' : ''}>Processed</option>
-                <option value="link sent" ${data.status === 'link sent' ? 'selected' : ''}>Link Sent</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="manual-cart" id="manual-${id}">
-            <h5>Build Manual Cart</h5>
-            <div class="cart-items"></div>
-            <button onclick="addManualItem('${id}')">+ Add Item</button>
-            <button onclick="generateCart('${id}')">Generate Cart Link</button>
-            <div class="cart-link" id="link-${id}"></div>
-          </div>
-        </div>
-      `;
+    snapshot.forEach(doc => {
+      allRequests.push({ id: doc.id, ...doc.data() });
     });
 
-    listEl.innerHTML = html;
+    buildMonthOptions();
+    renderRequests();
   }
 
-  window.updateStatus = async (select) => {
-    const id = select.getAttribute('data-status-id');
-    const status = select.value;
+  window.updateStatus = async (id, status) => {
     await updateDoc(doc(db, 'customBoxes', id), { status });
-    alert("Status updated.");
+    const req = allRequests.find(r => r.id === id);
+    if (req) req.status = status;
+    renderRequests();
   };
 
-  window.addManualItem = (requestId) => {
-    const container = document.querySelector(`#manual-${requestId} .cart-items`);
-    const group = document.createElement('div');
-    group.className = 'group';
-    group.innerHTML = `
-      <input type="text" placeholder="Item Name" />
-      <input type="number" placeholder="Price $" />
-    `;
-    container.appendChild(group);
-  };
-
-  window.generateCart = async (requestId) => {
-    const itemEls = document.querySelectorAll(`#manual-${requestId} .cart-items .group`);
-    const items = [];
-
-    itemEls.forEach(el => {
-      const name = el.children[0].value.trim();
-      const price = parseFloat(el.children[1].value);
-      if (name && !isNaN(price)) {
-        items.push({ name, price, quantity: 1 });
-      }
-    });
-
-    if (items.length === 0) {
-      alert("Please add at least one valid item with price.");
-      return;
-    }
-
-    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    await setDoc(doc(db, "manualCarts", id), { items, createdAt: new Date().toISOString() });
-
-    const link = `${window.location.origin}/cart.html?cartId=${id}`;
-    document.getElementById(`link-${requestId}`).textContent = `Cart Link: ${link}`;
-    navigator.clipboard.writeText(link);
-    alert("Cart link generated and copied!");
-  };
+  monthEl.addEventListener('change', renderRequests);
+  statusEl.addEventListener('change', renderRequests);
 
   loadRequests();
 </script>
