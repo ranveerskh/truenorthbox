@@ -11,7 +11,6 @@
       margin: 0;
       padding: 0;
     }
-
     header {
       background-color: #2f855a;
       color: white;
@@ -20,15 +19,8 @@
       justify-content: space-between;
       align-items: center;
     }
-
-    header .left {
-      font-size: 1.5rem;
-    }
-
-    header .right {
-      position: relative;
-    }
-
+    header .left { font-size: 1.5rem; }
+    header .right { position: relative; }
     .right button {
       background: #2f855a;
       color: white;
@@ -38,7 +30,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
     #dropdown-menu {
       display: none;
       position: absolute;
@@ -50,7 +41,6 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       z-index: 100;
     }
-
     .dropdown-link {
       display: block;
       padding: 10px 20px;
@@ -58,17 +48,12 @@
       text-decoration: none;
       font-size: 0.95rem;
     }
-
-    .dropdown-link:hover {
-      background: #f0f0f0;
-    }
-
+    .dropdown-link:hover { background: #f0f0f0; }
     .logout {
       margin-left: 15px;
       background: #e53e3e !important;
       color: white;
     }
-
     .container {
       max-width: 960px;
       margin: 20px auto;
@@ -77,12 +62,7 @@
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
-
-    h2 {
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
+    h2 { margin-bottom: 10px; text-align: center; }
     select, input, textarea, button {
       font-size: 1rem;
       padding: 10px;
@@ -90,7 +70,9 @@
       border: 1px solid #ccc;
       margin: 5px 0;
     }
-
+    select[multiple] {
+      min-height: 100px;
+    }
     .product-item {
       background: #f9f9f9;
       border-radius: 6px;
@@ -98,12 +80,10 @@
       margin-top: 10px;
       cursor: pointer;
     }
-
     .product-details {
       display: none;
       padding-top: 10px;
     }
-
     .actions button {
       margin-right: 10px;
       background: #2f855a;
@@ -113,14 +93,12 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     .category-actions input {
       padding: 6px;
       border-radius: 4px;
       border: 1px solid #ccc;
       margin-right: 10px;
     }
-
     .category-actions button {
       padding: 6px 10px;
       border: none;
@@ -128,35 +106,17 @@
       margin-right: 5px;
       cursor: pointer;
     }
-
-    .category-actions .update {
-      background: #2f855a;
-      color: white;
-    }
-
-    .category-actions .delete {
-      background: #e53e3e;
-      color: white;
-    }
+    .category-actions .update { background: #2f855a; color: white; }
+    .category-actions .delete { background: #e53e3e; color: white; }
   </style>
 </head>
 <body>
-
 <header>
   <div class="left">Admin Panel - TrueNorthBox</div>
   <div class="right">
-    <button onclick="toggleDropdown()">Admin Tools ⏷</button>
+    <button onclick="toggleDropdown()">Admin Tools ▾</button>
     <div id="dropdown-menu">
-      <a href="admin-orders.html" class="dropdown-link">📦 Orders</a>
-      <a href="admin-coupons.html" class="dropdown-link">🎟️ Coupons</a>
-      <a href="admin-giftcard.html" class="dropdown-link">💳 Gift Cards</a>
-      <a href="custom-requests.html" class="dropdown-link">📬 Custom Requests</a>
-      <a href="abandoned.html" class="dropdown-link">🕒 Abandoned Carts</a>
-      <a href="ambassadors.html" class="dropdown-link">👥 Ambassadors</a>
-      <a href="build-a-box.html" class="dropdown-link">📦 Build-A-Box</a>
-      <a href="history.html" class="dropdown-link">📜 Order History</a>
-      <a href="test-links.html" class="dropdown-link">🧪 Test Links</a>
-      <a href="admin.html" class="dropdown-link">🛠️ Product Manager</a>
+      <a href="#" class="dropdown-link">Dashboard</a>
       <button class="dropdown-link logout" onclick="logout()">🚪 Logout</button>
     </div>
   </div>
@@ -168,9 +128,7 @@
     <input type="text" id="name" placeholder="Product Name" required>
     <input type="number" id="price" placeholder="Price" required>
     <input type="text" id="sku" placeholder="SKU" required>
-    <select id="category" required>
-      <option value="">Select Category</option>
-    </select>
+    <select id="categories" multiple required></select>
     <input type="text" id="imageUrl" placeholder="Image URL" required>
     <textarea id="description" placeholder="Description"></textarea>
     <input type="number" id="stock" placeholder="Stock" required>
@@ -195,170 +153,170 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import {
-    getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
-    authDomain: "truenrothbox.firebaseapp.com",
-    projectId: "truenrothbox",
-    storageBucket: "truenrothbox.appspot.com",
-    messagingSenderId: "103087965950",
-    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+const firebaseConfig = {
+  apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+  authDomain: "truenrothbox.firebaseapp.com",
+  projectId: "truenrothbox",
+  storageBucket: "truenrothbox.appspot.com",
+  messagingSenderId: "103087965950",
+  appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const form = document.getElementById('product-form');
+const categoryForm = document.getElementById('category-form');
+const productList = document.getElementById('product-list');
+const categoryList = document.getElementById('category-list');
+const productCount = document.getElementById('product-count');
+const categorySelect = document.getElementById('categories');
+let editingId = null;
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: form.name.value,
+    price: parseFloat(form.price.value),
+    sku: form.sku.value,
+    categories: Array.from(form.categories.selectedOptions).map(opt => opt.value),
+    imageUrl: form.imageUrl.value,
+    description: form.description.value,
+    stock: parseInt(form.stock.value),
+    isFeatured: form.isFeatured.checked,
+    isBoxEligible: form.isBoxEligible.checked
   };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  const form = document.getElementById('product-form');
-  const categoryForm = document.getElementById('category-form');
-  const productList = document.getElementById('product-list');
-  const categoryList = document.getElementById('category-list');
-  const productCount = document.getElementById('product-count');
-  const categorySelect = document.getElementById('category');
-  let editingId = null;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = {
-      name: form.name.value,
-      price: parseFloat(form.price.value),
-      sku: form.sku.value,
-      category: form.category.value,
-      imageUrl: form.imageUrl.value,
-      description: form.description.value,
-      stock: parseInt(form.stock.value),
-      isFeatured: form.isFeatured.checked,
-      isBoxEligible: form.isBoxEligible.checked
-    };
-    try {
-      if (editingId) {
-        await updateDoc(doc(db, 'products', editingId), data);
-        editingId = null;
-      } else {
-        await addDoc(collection(db, 'products'), data);
-      }
-      form.reset();
-      loadProducts();
-    } catch (error) {
-      alert("Error saving product: " + error.message);
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, 'products', editingId), data);
+      editingId = null;
+    } else {
+      await addDoc(collection(db, 'products'), data);
     }
-  });
-
-  categoryForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const newCat = categoryForm['new-category'].value.trim();
-    if (!newCat) return;
-    await addDoc(collection(db, 'categories'), { name: newCat });
-    categoryForm.reset();
-    loadCategories();
-  });
-
-  async function loadProducts() {
-    productList.innerHTML = '';
-    const snapshot = await getDocs(collection(db, 'products'));
-    let count = 0;
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      count++;
-      const item = document.createElement('div');
-      item.className = 'product-item';
-      item.innerHTML = `
-        <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
-          <strong>${data.name}</strong> (${data.category})
-        </div>
-        <div class="product-details">
-          <p>Price: $${data.price}</p>
-          <p>SKU: ${data.sku}</p>
-          <p>Stock: ${data.stock}</p>
-          <p><img src="${data.imageUrl}" width="80"/></p>
-          <div class="actions">
-            <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
-            <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
-          </div>
-        </div>
-      `;
-      productList.appendChild(item);
-    });
-    productCount.textContent = count;
-  }
-
-  async function loadCategories() {
-    categoryList.innerHTML = '';
-    categorySelect.innerHTML = '<option value="">Select Category</option>';
-    const catSnapshot = await getDocs(collection(db, 'categories'));
-    catSnapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      const div = document.createElement('div');
-      div.className = 'category-actions';
-      div.innerHTML = `
-        <input value="${data.name}" id="edit-${docSnap.id}" />
-        <button class="update" onclick='updateCategory("${docSnap.id}")'>Update</button>
-        <button class="delete" onclick='deleteCategory("${docSnap.id}")'>Delete</button>
-      `;
-      categoryList.appendChild(div);
-      const opt = document.createElement('option');
-      opt.value = data.name;
-      opt.textContent = data.name;
-      categorySelect.appendChild(opt);
-    });
-  }
-
-  window.editProduct = (id, data) => {
-    editingId = id;
-    form.name.value = data.name;
-    form.price.value = data.price;
-    form.sku.value = data.sku;
-    form.category.value = data.category;
-    form.imageUrl.value = data.imageUrl;
-    form.description.value = data.description;
-    form.stock.value = data.stock;
-    form.isFeatured.checked = data.isFeatured;
-    form.isBoxEligible.checked = data.isBoxEligible;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  window.deleteProduct = async (id) => {
-    await deleteDoc(doc(db, 'products', id));
+    form.reset();
     loadProducts();
-  };
+  } catch (error) {
+    alert("Error saving product: " + error.message);
+  }
+});
 
-  window.updateCategory = async (id) => {
-    const input = document.getElementById(`edit-${id}`);
-    const newName = input.value.trim();
-    if (!newName) return;
-    await updateDoc(doc(db, 'categories', id), { name: newName });
-    loadCategories();
-  };
-
-  window.deleteCategory = async (id) => {
-    if (confirm("Are you sure to delete this category?")) {
-      await deleteDoc(doc(db, 'categories', id));
-      loadCategories();
-    }
-  };
-
-  window.toggleDropdown = function () {
-    const menu = document.getElementById('dropdown-menu');
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-  };
-
-  window.logout = function () {
-    alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
-    window.location.href = "login.html";
-  };
-
-  window.addEventListener('click', function (e) {
-    const menu = document.getElementById('dropdown-menu');
-    if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
-      menu.style.display = 'none';
-    }
-  });
-
-  loadProducts();
+categoryForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const newCat = categoryForm['new-category'].value.trim();
+  if (!newCat) return;
+  await addDoc(collection(db, 'categories'), { name: newCat });
+  categoryForm.reset();
   loadCategories();
+});
+
+async function loadProducts() {
+  productList.innerHTML = '';
+  const snapshot = await getDocs(collection(db, 'products'));
+  let count = 0;
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    count++;
+    const item = document.createElement('div');
+    item.className = 'product-item';
+    item.innerHTML = `
+      <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+        <strong>${data.name}</strong> (${(data.categories || []).join(', ')})
+      </div>
+      <div class="product-details">
+        <p>Price: $${data.price}</p>
+        <p>SKU: ${data.sku}</p>
+        <p>Stock: ${data.stock}</p>
+        <p><img src="${data.imageUrl}" width="80"/></p>
+        <div class="actions">
+          <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
+          <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
+        </div>
+      </div>
+    `;
+    productList.appendChild(item);
+  });
+  productCount.textContent = count;
+}
+
+async function loadCategories() {
+  categoryList.innerHTML = '';
+  categorySelect.innerHTML = '';
+  const catSnapshot = await getDocs(collection(db, 'categories'));
+  catSnapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const div = document.createElement('div');
+    div.className = 'category-actions';
+    div.innerHTML = `
+      <input value="${data.name}" id="edit-${docSnap.id}" />
+      <button class="update" onclick='updateCategory("${docSnap.id}")'>Update</button>
+      <button class="delete" onclick='deleteCategory("${docSnap.id}")'>Delete</button>
+    `;
+    categoryList.appendChild(div);
+    const opt = document.createElement('option');
+    opt.value = data.name;
+    opt.textContent = data.name;
+    categorySelect.appendChild(opt);
+  });
+}
+
+window.editProduct = (id, data) => {
+  editingId = id;
+  form.name.value = data.name;
+  form.price.value = data.price;
+  form.sku.value = data.sku;
+  form.imageUrl.value = data.imageUrl;
+  form.description.value = data.description;
+  form.stock.value = data.stock;
+  form.isFeatured.checked = data.isFeatured;
+  form.isBoxEligible.checked = data.isBoxEligible;
+  Array.from(form.categories.options).forEach(opt => {
+    opt.selected = data.categories?.includes(opt.value);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.deleteProduct = async (id) => {
+  await deleteDoc(doc(db, 'products', id));
+  loadProducts();
+};
+
+window.updateCategory = async (id) => {
+  const input = document.getElementById(`edit-${id}`);
+  const newName = input.value.trim();
+  if (!newName) return;
+  await updateDoc(doc(db, 'categories', id), { name: newName });
+  loadCategories();
+};
+
+window.deleteCategory = async (id) => {
+  if (confirm("Are you sure to delete this category?")) {
+    await deleteDoc(doc(db, 'categories', id));
+    loadCategories();
+  }
+};
+
+window.toggleDropdown = function () {
+  const menu = document.getElementById('dropdown-menu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+};
+
+window.logout = function () {
+  alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
+  window.location.href = "login.html";
+};
+
+window.addEventListener('click', function (e) {
+  const menu = document.getElementById('dropdown-menu');
+  if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
+    menu.style.display = 'none';
+  }
+});
+
+loadProducts();
+loadCategories();
 </script>
 </body>
 </html>
