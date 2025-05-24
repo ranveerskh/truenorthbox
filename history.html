@@ -42,7 +42,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
-
   const ordersEl = document.getElementById('orders');
 
   const loadOrders = async () => {
@@ -71,12 +70,21 @@
             </select>
             <span class="tag">${data.status}</span>
           </p>
+
           <div class="items">
             <strong>Items:</strong>
             <ul>
-              ${data.items.map(i => `<li>${i.name} x ${i.quantity || 1} - $${(i.price * (i.quantity || 1)).toFixed(2)}</li>`).join('')}
+              ${data.items.map(i => `
+                <li>
+                  ${i.name}
+                  <span class="tag">SKU: ${i.sku || 'N/A'}</span><br>
+                  Quantity: ${i.quantity || 1} – $${(i.price * (i.quantity || 1)).toFixed(2)}
+                </li>
+              `).join('')}
             </ul>
           </div>
+
+          ${data.note ? `<p><strong>Customer Note:</strong> ${data.note}</p>` : ''}
         </div>
       `;
     });
