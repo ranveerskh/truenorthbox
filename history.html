@@ -12,7 +12,7 @@
     .order { border-bottom: 1px solid #ccc; margin-bottom: 20px; }
     .order-header { cursor: pointer; background: #e0f7e9; padding: 10px; border-radius: 5px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
     .order-body { display: none; padding: 10px 15px; }
-    .status { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .status { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
     select, input[type="text"] { padding: 5px; }
     .items { margin-top: 10px; padding-left: 15px; }
     .items li { font-size: 0.9rem; margin-bottom: 10px; }
@@ -41,10 +41,12 @@
       <label>Month:</label>
       <select id="monthFilter">
         <option value="all">All</option>
-        ${[...Array(12).keys()].map(m => {
-          const month = new Date(0, m).toLocaleString('default', { month: 'long' });
-          return `<option value="${m + 1}">${month}</option>`;
-        }).join('')}
+        <script>
+          document.write([...Array(12).keys()].map(m => {
+            const month = new Date(0, m).toLocaleString('default', { month: 'long' });
+            return `<option value="${m + 1}">${month}</option>`;
+          }).join(''));
+        </script>
       </select>
     </div>
     <div>
@@ -120,12 +122,14 @@
             <p><strong>Total:</strong> <strong>$${data.total.toFixed(2)}</strong></p>
             <p><strong>Created:</strong> ${createdDate.toLocaleString()}</p>
 
-            <p class="status"><strong>Status:</strong> 
+            <p class="status">
+              <strong>Status:</strong> 
               <select data-id="${docSnap.id}" onchange="updateStatus(this)">
                 <option value="Pending" ${data.status === 'Pending' ? 'selected' : ''}>Pending</option>
                 <option value="Shipped" ${data.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
                 <option value="Delivered" ${data.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
               </select>
+              <button onclick="markPaymentReceived('${docSnap.id}')" style="margin-left: 15px;">Payment Received</button>
             </p>
 
             <div class="items">
@@ -156,13 +160,53 @@
     body.style.display = body.style.display === 'block' ? 'none' : 'block';
   };
 
+  window.markPaymentReceived = async (orderId) => {
+    await updateDoc(doc(db, "orders", orderId), {
+      paymentReceived: true
+    });
+    alert("Payment marked as received!");
+    loadOrders();
+  };
+
   window.updateStatus = async (select) => {
     const orderId = select.getAttribute('data-id');
     const status = select.value;
+
     await updateDoc(doc(db, 'orders', orderId), { status });
     alert('Status updated!');
-    loadOrders(); // refresh
+
+    if (status === "Delivered") {
+      const snapshot = await getDocs(collection(db, "orders"));
+      const docSnap = snapshot.docs.find(d => d.id === orderId);
+      const data = docSnap.data();
+      sendInvoiceEmail(data);
+    }
+
+    loadOrders();
   };
+
+  function sendInvoiceEmail(data) {
+    const form = document.createElement('form');
+    form.action = "https://formsubmit.co/ajax/ranveersflex@gmail.com"; // ⬅ Replace this with your email
+    form.method = "POST";
+    form.style.display = "none";
+
+    const fields = {
+      _subject: `Your Invoice from True North Box – ${data.orderId}`,
+      message: `Hi ${data.firstName},\n\nYour order (${data.orderId}) has been delivered.\n\nTotal: $${data.total.toFixed(2)}\nThank you for shopping with us!\n\nBest,\nTrue North Box`,
+      email: data.email
+    };
+
+    for (const key in fields) {
+      const input = document.createElement('input');
+      input.name = key;
+      input.value = fields[key];
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+  }
 
   onAuthStateChanged(auth, user => {
     if (user) {
