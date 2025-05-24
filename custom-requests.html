@@ -21,8 +21,8 @@
     }
     .request {
       border-bottom: 1px solid #ddd;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
     }
     .request p {
       margin: 4px 0;
@@ -31,12 +31,34 @@
       margin-left: 20px;
       font-size: 0.95rem;
     }
-    .items input {
-      width: 100px;
-      margin-left: 5px;
+    .items li {
+      margin-bottom: 5px;
     }
-    .status-update {
+    .manual-cart {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .manual-cart input {
+      margin: 5px 5px 5px 0;
+    }
+    .manual-cart .group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .manual-cart button {
       margin-top: 10px;
+    }
+    .cart-link {
+      margin-top: 10px;
+      background: #d4edda;
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -49,7 +71,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -62,7 +84,6 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-
   const listEl = document.getElementById("requestList");
 
   async function loadRequests() {
@@ -73,22 +94,18 @@
       const data = docSnap.data();
       const id = docSnap.id;
 
-      const items = data.items.map((item, i) => `
-        <li>
-          ${item}
-          <input type="number" placeholder="Price $" data-id="${id}" data-item="${i}">
-        </li>
-      `).join('');
+      const items = data.items.map(item => `<li>${item}</li>`).join('');
 
       html += `
-        <div class="request">
+        <div class="request" data-id="${id}">
           <p><strong>Name:</strong> ${data.name}</p>
           <p><strong>Email:</strong> ${data.email}</p>
           <p><strong>Phone:</strong> ${data.phone}</p>
           <p><strong>Delivery Date:</strong> ${data.deliveryDate}</p>
           <p><strong>Note:</strong> ${data.note || '—'}</p>
-          <p><strong>Items:</strong></p>
+          <p><strong>Items Requested:</strong></p>
           <ul class="items">${items}</ul>
+
           <div class="status-update">
             <label>Status: 
               <select data-status-id="${id}" onchange="updateStatus(this)">
@@ -97,6 +114,14 @@
                 <option value="link sent" ${data.status === 'link sent' ? 'selected' : ''}>Link Sent</option>
               </select>
             </label>
+          </div>
+
+          <div class="manual-cart" id="manual-${id}">
+            <h5>Build Manual Cart</h5>
+            <div class="cart-items"></div>
+            <button onclick="addManualItem('${id}')">+ Add Item</button>
+            <button onclick="generateCart('${id}')">Generate Cart Link</button>
+            <div class="cart-link" id="link-${id}"></div>
           </div>
         </div>
       `;
@@ -110,6 +135,43 @@
     const status = select.value;
     await updateDoc(doc(db, 'customBoxes', id), { status });
     alert("Status updated.");
+  };
+
+  window.addManualItem = (requestId) => {
+    const container = document.querySelector(`#manual-${requestId} .cart-items`);
+    const group = document.createElement('div');
+    group.className = 'group';
+    group.innerHTML = `
+      <input type="text" placeholder="Item Name" />
+      <input type="number" placeholder="Price $" />
+    `;
+    container.appendChild(group);
+  };
+
+  window.generateCart = async (requestId) => {
+    const itemEls = document.querySelectorAll(`#manual-${requestId} .cart-items .group`);
+    const items = [];
+
+    itemEls.forEach(el => {
+      const name = el.children[0].value.trim();
+      const price = parseFloat(el.children[1].value);
+      if (name && !isNaN(price)) {
+        items.push({ name, price, quantity: 1 });
+      }
+    });
+
+    if (items.length === 0) {
+      alert("Please add at least one valid item with price.");
+      return;
+    }
+
+    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    await setDoc(doc(db, "manualCarts", id), { items, createdAt: new Date().toISOString() });
+
+    const link = `${window.location.origin}/cart.html?cartId=${id}`;
+    document.getElementById(`link-${requestId}`).textContent = `Cart Link: ${link}`;
+    navigator.clipboard.writeText(link);
+    alert("Cart link generated and copied!");
   };
 
   loadRequests();
