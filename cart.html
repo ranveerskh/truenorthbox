@@ -26,8 +26,9 @@
     .recommend-grid .box { background: #fff; padding: 10px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; cursor: pointer; }
     .recommend-grid img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; }
     .recommend-grid h4 { font-size: 1rem; margin: 10px 0 5px; }
-    .input-group { display: flex; gap: 10px; margin-top: 15px; }
-    .input-group input { flex: 1; padding: 8px; }
+    .input-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .input-group input { flex: 1; padding: 8px; min-width: 200px; }
+    .input-group button { padding: 8px 15px; }
   </style>
 </head>
 <body>
@@ -56,7 +57,9 @@
   <div class="input-group">
     <input type="text" id="coupon-code" placeholder="Enter Coupon or Gift Card Code">
     <button onclick="applyCouponOrGiftCard()">Apply</button>
+    <button id="remove-code-btn" style="display: none;" onclick="removeAppliedCode()">Remove</button>
   </div>
+  <p id="applied-code-message" style="margin-top: 10px; color: #2f855a; font-weight: bold;"></p>
 </div>
 
 <div class="cart-container summary" id="cart-summary"></div>
@@ -86,6 +89,8 @@
   const cartItemsEl = document.getElementById('cart-items');
   const cartSummaryEl = document.getElementById('cart-summary');
   const shippingMethodEl = document.getElementById('shipping-method');
+  const appliedMsg = document.getElementById('applied-code-message');
+  const removeBtn = document.getElementById('remove-code-btn');
 
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
   let couponDiscount = 0;
@@ -117,25 +122,37 @@
 
     if (giftDoc.exists()) {
       giftCardAmount = giftDoc.data().amount || 0;
-      alert(`Gift card of $${giftCardAmount} applied!`);
+      appliedMsg.textContent = `Gift card "${code}" applied: $${giftCardAmount}`;
+      removeBtn.style.display = 'inline-block';
       isGiftCard = true;
     }
 
     if (validCoupon) {
       const subtotal = cart.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
       couponDiscount = (subtotal * validCoupon.discount) / 100;
-      alert(`${validCoupon.discount}% coupon applied!`);
+      appliedMsg.textContent = `Coupon "${code}" applied: ${validCoupon.discount}% OFF`;
+      removeBtn.style.display = 'inline-block';
 
       const newUsed = (validCoupon.used || 0) + 1;
       await updateDoc(doc(db, "coupons", couponId), { used: newUsed });
     }
 
     if (!validCoupon && !giftDoc.exists()) {
-      alert('Invalid or expired code.');
+      appliedMsg.textContent = `Invalid or expired code.`;
       couponDiscount = 0;
       giftCardAmount = 0;
+      removeBtn.style.display = 'none';
     }
 
+    renderCart();
+  }
+
+  function removeAppliedCode() {
+    couponDiscount = 0;
+    giftCardAmount = 0;
+    document.getElementById('coupon-code').value = '';
+    appliedMsg.textContent = '';
+    removeBtn.style.display = 'none';
     renderCart();
   }
 
@@ -271,6 +288,9 @@
 
   renderCart();
   loadRecommendations();
+
+  window.applyCouponOrGiftCard = applyCouponOrGiftCard;
+  window.removeAppliedCode = removeAppliedCode;
 </script>
 </body>
 </html>
