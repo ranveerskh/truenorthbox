@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Build Your Box - True North Box</title>
   <style>
@@ -44,12 +44,14 @@
       width: auto;
       padding: 8px 14px;
       margin: 10px 0;
+      cursor: pointer;
     }
     .submit-btn {
       background: #28a745;
       color: white;
       border: none;
       margin-top: 20px;
+      cursor: pointer;
     }
     .message {
       text-align: center;
@@ -80,13 +82,7 @@
     <textarea id="note" rows="3" placeholder="Write your message here..."></textarea>
 
     <label>Items (start with 5)</label>
-    <div id="items" class="items-group">
-      <input type="text" placeholder="Item 1" required>
-      <input type="text" placeholder="Item 2" required>
-      <input type="text" placeholder="Item 3" required>
-      <input type="text" placeholder="Item 4" required>
-      <input type="text" placeholder="Item 5" required>
-    </div>
+    <div id="items" class="items-group"></div>
     <button type="button" class="add-btn" onclick="addItem()">+ Add More Items</button>
 
     <button type="submit" class="submit-btn">Submit</button>
@@ -118,7 +114,19 @@
     const input = document.createElement('input');
     input.type = "text";
     input.placeholder = `Item ${itemsContainer.children.length + 1}`;
+    input.required = true;
     itemsContainer.appendChild(input);
+  }
+
+  function renderInitialItems() {
+    itemsContainer.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const input = document.createElement('input');
+      input.type = "text";
+      input.placeholder = `Item ${i}`;
+      input.required = true;
+      itemsContainer.appendChild(input);
+    }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -151,23 +159,15 @@
     try {
       await addDoc(collection(db, "customBoxes"), data);
       messageEl.textContent = "Thank you! We’ll create your box and send you a cart link in 12–24 hours.";
-
-      // Reset form and rebuild 5 item inputs with 'required'
       form.reset();
-      itemsContainer.innerHTML = '';
-      for (let i = 1; i <= 5; i++) {
-        const input = document.createElement('input');
-        input.type = "text";
-        input.placeholder = `Item ${i}`;
-        input.required = true;
-        itemsContainer.appendChild(input);
-      }
-
+      renderInitialItems();
     } catch (err) {
       console.error("Error submitting box:", err);
       alert("Something went wrong. Please try again.");
     }
   });
+
+  renderInitialItems(); // load initial 5 fields
 </script>
 
 </body>
