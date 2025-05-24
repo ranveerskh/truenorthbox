@@ -30,7 +30,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>Generate Gift Cards</h2>
+    <h2>Generate Gift Cards (via Image URL)</h2>
     <select id="amount">
       <option value="">Select Amount</option>
       <option value="25">$25</option>
@@ -41,27 +41,22 @@
     </select>
     <input type="number" id="quantity" placeholder="How many gift cards?" min="1" />
     <input type="date" id="expiry" />
-    <input type="file" id="imageInput" accept="image/*" />
-    <button onclick="generateGiftCards()">Generate</button>
+    <input type="url" id="imageUrl" placeholder="Paste image URL for gift card" />
+    <button onclick="generateGiftCards()">Generate Gift Cards</button>
 
     <div class="preview" id="status"></div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-storage.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
       authDomain: "truenrothbox.firebaseapp.com",
-      projectId: "truenrothbox",
-      storageBucket: "truenrothbox.firebasestorage.app",
-      messagingSenderId: "103087965950",
-      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+      projectId: "truenrothbox"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const storage = firebase.storage();
 
     function generateCode(length = 8) {
       const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -72,20 +67,15 @@
       const amount = document.getElementById('amount').value;
       const quantity = parseInt(document.getElementById('quantity').value);
       const expiry = document.getElementById('expiry').value;
-      const imageFile = document.getElementById('imageInput').files[0];
+      const imageUrl = document.getElementById('imageUrl').value;
       const statusBox = document.getElementById('status');
 
-      if (!amount || !quantity || !expiry || !imageFile) {
-        alert("Fill all fields and select image");
+      if (!amount || !quantity || !expiry || !imageUrl) {
+        alert("Please fill all fields.");
         return;
       }
 
-      // Upload image once
-      const imageRef = storage.ref(`giftcards/${Date.now()}-${imageFile.name}`);
-      const uploadTask = await imageRef.put(imageFile);
-      const imageUrl = await uploadTask.ref.getDownloadURL();
-
-      statusBox.innerHTML = "Generating gift cards...";
+      statusBox.innerHTML = "Generating...";
 
       const batch = db.batch();
       for (let i = 0; i < quantity; i++) {
@@ -96,14 +86,14 @@
           amount: parseFloat(amount),
           expiry,
           used: false,
-          status: "ready",  // could be "ready", "purchased", "redeemed"
+          status: "ready",
           imageUrl,
           createdAt: new Date().toISOString()
         });
       }
 
       await batch.commit();
-      statusBox.innerHTML = `${quantity} gift cards generated successfully.`;
+      statusBox.innerHTML = `${quantity} gift cards generated. Refresh user page to see them.`;
     }
   </script>
 </body>
