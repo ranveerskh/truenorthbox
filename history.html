@@ -13,12 +13,12 @@
     .order-header { cursor: pointer; background: #e0f7e9; padding: 10px; border-radius: 5px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
     .order-body { display: none; padding: 10px 15px; }
     .status { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-    select { padding: 5px; }
+    select, input[type="text"] { padding: 5px; }
     .items { margin-top: 10px; padding-left: 15px; }
     .items li { font-size: 0.9rem; margin-bottom: 10px; }
     .tag { font-size: 0.85rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
     .note { font-style: italic; color: #666; margin-top: 4px; }
-    .filters { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; }
+    .filters { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
     .filters label { margin-right: 5px; }
   </style>
 </head>
@@ -47,6 +47,10 @@
         }).join('')}
       </select>
     </div>
+    <div>
+      <label>Search:</label>
+      <input type="text" id="searchInput" placeholder="Name, Email, or Order ID">
+    </div>
   </div>
 
   <div id="orders"></div>
@@ -73,19 +77,30 @@
   const ordersEl = document.getElementById('orders');
   const statusFilter = document.getElementById('statusFilter');
   const monthFilter = document.getElementById('monthFilter');
+  const searchInput = document.getElementById('searchInput');
 
   const loadOrders = async () => {
     const snapshot = await getDocs(collection(db, "orders"));
     let html = '';
 
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const statusVal = statusFilter.value;
+    const monthVal = monthFilter.value;
+
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const createdDate = new Date(data.createdAt);
       const month = createdDate.getMonth() + 1;
-      const matchesStatus = statusFilter.value === 'all' || data.status === statusFilter.value;
-      const matchesMonth = monthFilter.value === 'all' || parseInt(monthFilter.value) === month;
 
-      if (!matchesStatus || !matchesMonth) return;
+      const matchesStatus = statusVal === 'all' || data.status === statusVal;
+      const matchesMonth = monthVal === 'all' || parseInt(monthVal) === month;
+      const matchesSearch = !searchTerm || (
+        (data.firstName + ' ' + data.lastName).toLowerCase().includes(searchTerm) ||
+        data.email.toLowerCase().includes(searchTerm) ||
+        (data.orderId || '').toLowerCase().includes(searchTerm)
+      );
+
+      if (!matchesStatus || !matchesMonth || !matchesSearch) return;
 
       html += `
         <div class="order">
@@ -160,6 +175,7 @@
 
   statusFilter.addEventListener('change', loadOrders);
   monthFilter.addEventListener('change', loadOrders);
+  searchInput.addEventListener('input', loadOrders);
 </script>
 
 </body>
