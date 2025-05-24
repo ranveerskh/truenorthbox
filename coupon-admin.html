@@ -1,46 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coupon Admin - True North Box</title>
+  <title>Coupon Admin Panel</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-    .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    .container { max-width: 700px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
     h2 { text-align: center; }
-    input, button, select { width: 100%; padding: 10px; margin: 10px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-    .inactive { background: #eee; color: #888; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; }
+    .message { text-align: center; font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Coupon Management</h2>
-    <input type="text" id="code" placeholder="Coupon Code (e.g. SAVE20)">
-    <input type="number" id="discount" placeholder="Discount Percentage">
-    <input type="number" id="maxUses" placeholder="Max Uses">
-    <button onclick="createCoupon()">Add Coupon</button>
-
-    <h3>All Coupons</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Discount %</th>
-          <th>Max Uses</th>
-          <th>Used</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="couponList"></tbody>
-    </table>
+    <h2>Create a New Coupon</h2>
+    <input type="text" id="code" placeholder="Coupon Code (e.g. SAVE20)" />
+    <input type="number" id="discount" placeholder="Discount Percentage (e.g. 15)" />
+    <input type="number" id="maxUses" placeholder="Max Uses (e.g. 5)" />
+    <button onclick="addCoupon()">Create Coupon</button>
+    <p class="message" id="message"></p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -53,83 +37,40 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const couponsRef = collection(db, "coupons");
 
-    async function createCoupon() {
-      const code = document.getElementById("code").value.trim();
-      const discount = parseFloat(document.getElementById("discount").value);
-      const maxUses = parseInt(document.getElementById("maxUses").value);
+    async function addCoupon() {
+      const code = document.getElementById('code').value.trim();
+      const discount = parseFloat(document.getElementById('discount').value);
+      const maxUses = parseInt(document.getElementById('maxUses').value);
+      const messageEl = document.getElementById('message');
 
       if (!code || isNaN(discount) || isNaN(maxUses)) {
-        alert("Please fill in all fields correctly.");
+        messageEl.style.color = 'red';
+        messageEl.innerText = 'Please fill in all fields correctly.';
         return;
       }
 
       try {
-        await addDoc(couponsRef, {
+        await addDoc(collection(db, 'coupons'), {
           code: code.toUpperCase(),
           discount,
           maxUses,
           used: 0,
-          status: "active",
+          status: 'active',
           createdAt: new Date().toISOString()
         });
-        alert("Coupon created successfully!");
-        document.getElementById("code").value = "";
-        document.getElementById("discount").value = "";
-        document.getElementById("maxUses").value = "";
-        fetchCoupons();
-      } catch (error) {
-        console.error("Error adding coupon:", error);
-        alert("Failed to add coupon.");
+
+        messageEl.style.color = 'green';
+        messageEl.innerText = '✅ Coupon created successfully!';
+        document.getElementById('code').value = '';
+        document.getElementById('discount').value = '';
+        document.getElementById('maxUses').value = '';
+      } catch (err) {
+        console.error('Error adding coupon:', err);
+        messageEl.style.color = 'red';
+        messageEl.innerText = '❌ Failed to create coupon. Check console.';
       }
     }
-
-    async function fetchCoupons() {
-      const snapshot = await getDocs(couponsRef);
-      const list = document.getElementById("couponList");
-      list.innerHTML = "";
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const row = document.createElement("tr");
-        if (data.status === "inactive") row.className = "inactive";
-
-        row.innerHTML = `
-          <td><input value="${data.code}" onchange="updateField('${docSnap.id}', 'code', this.value)"></td>
-          <td><input type="number" value="${data.discount}" onchange="updateField('${docSnap.id}', 'discount', this.value)"></td>
-          <td><input type="number" value="${data.maxUses}" onchange="updateField('${docSnap.id}', 'maxUses', this.value)"></td>
-          <td>${data.used}</td>
-          <td>
-            <select onchange="updateField('${docSnap.id}', 'status', this.value)">
-              <option value="active" ${data.status === "active" ? "selected" : ""}>Active</option>
-              <option value="inactive" ${data.status === "inactive" ? "selected" : ""}>Inactive</option>
-            </select>
-          </td>
-          <td>
-            <button onclick="deleteCoupon('${docSnap.id}')">Delete</button>
-          </td>
-        `;
-        list.appendChild(row);
-      });
-    }
-
-    window.updateField = async (id, field, value) => {
-      const ref = doc(db, "coupons", id);
-      const update = {};
-      update[field] = field === "discount" || field === "maxUses" ? Number(value) : value;
-      await updateDoc(ref, update);
-      fetchCoupons();
-    };
-
-    window.deleteCoupon = async (id) => {
-      if (confirm("Delete this coupon?")) {
-        await deleteDoc(doc(db, "coupons", id));
-        fetchCoupons();
-      }
-    };
-
-    fetchCoupons();
   </script>
 </body>
 </html>
