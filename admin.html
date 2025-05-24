@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Panel - TrueNorthBox</title>
   <style>
     body {
@@ -11,18 +11,25 @@
       margin: 0;
       padding: 0;
     }
+
     header {
       background-color: #2f855a;
       color: white;
       padding: 20px;
-      font-size: 1.5rem;
-    }
-    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .top-bar button {
+
+    header .left {
+      font-size: 1.5rem;
+    }
+
+    header .right {
+      position: relative;
+    }
+
+    .right button {
       background: #2f855a;
       color: white;
       border: none;
@@ -31,6 +38,19 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
+    #dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
     .dropdown-link {
       display: block;
       padding: 10px 20px;
@@ -38,19 +58,9 @@
       text-decoration: none;
       font-size: 0.95rem;
     }
+
     .dropdown-link:hover {
       background: #f0f0f0;
-    }
-    #dropdown-menu {
-      display: none;
-      position: absolute;
-      right: 20px;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-top: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      z-index: 100;
     }
 
     .container {
@@ -61,31 +71,39 @@
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
+
     h2 {
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       text-align: center;
     }
-    input, textarea, select, button {
-      display: block;
-      width: 100%;
-      margin: 10px 0;
-      padding: 10px;
+
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    select, input, textarea, button {
       font-size: 1rem;
+      padding: 10px;
+      border-radius: 6px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      margin: 5px 0;
     }
-    .product-item, .category-item {
-      border: 1px solid #ddd;
-      padding: 15px;
-      margin-top: 15px;
-      border-radius: 6px;
+
+    .product-item {
       background: #f9f9f9;
-    }
-    .product-item img {
-      max-width: 100px;
-      border-radius: 4px;
+      border-radius: 6px;
+      padding: 10px;
       margin-top: 10px;
+      cursor: pointer;
     }
+
+    .product-details {
+      display: none;
+      padding-top: 10px;
+    }
+
     .actions button {
       margin-right: 10px;
       background: #2f855a;
@@ -95,26 +113,30 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    .actions button:hover {
-      opacity: 0.9;
-    }
+
     .top-links {
       text-align: center;
       margin-top: 10px;
     }
+
     .top-links a {
       margin: 0 10px;
       text-decoration: none;
       color: #2f855a;
       font-weight: bold;
     }
+
+    .logout {
+      margin-left: 15px;
+      background: #e53e3e !important;
+    }
   </style>
 </head>
 <body>
 
-  <header class="top-bar">
-    <div>Admin Panel - TrueNorthBox</div>
-    <div style="position: relative;">
+  <header>
+    <div class="left">Admin Panel - TrueNorthBox</div>
+    <div class="right">
       <button onclick="toggleDropdown()">Admin Tools ⏷</button>
       <div id="dropdown-menu">
         <a href="admin-orders.html" class="dropdown-link">📦 Orders</a>
@@ -127,13 +149,10 @@
         <a href="history.html" class="dropdown-link">📜 Order History</a>
         <a href="test-links.html" class="dropdown-link">🧪 Test Links</a>
         <a href="admin.html" class="dropdown-link">🛠️ Product Manager</a>
+        <button class="dropdown-link logout" onclick="logout()">🚪 Logout</button>
       </div>
     </div>
   </header>
-
-  <div class="top-links">
-    <a href="https://postimages.org/" target="_blank">Upload Image</a>
-  </div>
 
   <div class="container">
     <h2>Add / Edit Product</h2>
@@ -151,20 +170,22 @@
     </form>
   </div>
 
-  <div class="container" id="product-list">
-    <h2>Existing Products</h2>
-  </div>
-
-  <div class="container" id="category-panel">
-    <h2>Categories</h2>
-    <div id="category-list"></div>
+  <div class="container">
+    <h2>Existing Products (<span id="product-count">0</span>)</h2>
+    <div class="filter-bar">
+      <label>Filter by Category:
+        <select id="filter-category">
+          <option value="">All</option>
+        </select>
+      </label>
+    </div>
+    <div id="product-list"></div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
-      query, where, writeBatch
+      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where
     } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -181,7 +202,8 @@
 
     const form = document.getElementById('product-form');
     const productList = document.getElementById('product-list');
-    const categoryList = document.getElementById('category-list');
+    const productCount = document.getElementById('product-count');
+    const categoryFilter = document.getElementById('filter-category');
     let editingId = null;
 
     form.addEventListener('submit', async (e) => {
@@ -211,27 +233,51 @@
       }
     });
 
+    categoryFilter.addEventListener('change', loadProducts);
+
     async function loadProducts() {
-      productList.innerHTML = '<h2>Existing Products</h2>';
+      productList.innerHTML = '';
       const snapshot = await getDocs(collection(db, 'products'));
       const categories = new Set();
+      let count = 0;
+
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         categories.add(data.category);
-        const div = document.createElement('div');
-        div.className = 'product-item';
-        div.innerHTML = `
-          <strong>${data.name}</strong> (${data.category})<br>
-          Price: $${data.price} | SKU: ${data.sku} | Stock: ${data.stock}<br>
-          <img src="${data.imageUrl}" alt="${data.name}"><br>
-          <div class="actions">
-            <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
-            <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
+        const selected = categoryFilter.value;
+        if (selected && selected !== data.category) return;
+
+        count++;
+        const item = document.createElement('div');
+        item.className = 'product-item';
+        item.innerHTML = `
+          <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+            <strong>${data.name}</strong> (${data.category})
+          </div>
+          <div class="product-details">
+            <p>Price: $${data.price}</p>
+            <p>SKU: ${data.sku}</p>
+            <p>Stock: ${data.stock}</p>
+            <p><img src="${data.imageUrl}" width="80"/></p>
+            <div class="actions">
+              <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
+              <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
+            </div>
           </div>
         `;
-        productList.appendChild(div);
+        productList.appendChild(item);
       });
-      loadCategories([...categories]);
+
+      productCount.textContent = count;
+
+      // Populate category filter
+      categoryFilter.innerHTML = '<option value="">All</option>';
+      [...categories].forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categoryFilter.appendChild(opt);
+      });
     }
 
     window.editProduct = (id, data) => {
@@ -253,47 +299,14 @@
       loadProducts();
     };
 
-    function loadCategories(categories) {
-      categoryList.innerHTML = '';
-      categories.forEach(cat => {
-        const div = document.createElement('div');
-        div.className = 'category-item';
-        div.innerHTML = `
-          <strong>${cat}</strong>
-          <button onclick="renameCategory('${cat}')">Rename</button>
-          <button onclick="deleteCategory('${cat}')">Delete</button>
-        `;
-        categoryList.appendChild(div);
-      });
-    }
-
-    window.deleteCategory = async (category) => {
-      if (!confirm(`Delete all products in category: ${category}?`)) return;
-      const q = query(collection(db, 'products'), where('category', '==', category));
-      const snapshot = await getDocs(q);
-      const batch = writeBatch(db);
-      snapshot.forEach(docSnap => batch.delete(docSnap.ref));
-      await batch.commit();
-      loadProducts();
-    };
-
-    window.renameCategory = async (oldCat) => {
-      const newCat = prompt("Enter new category name:", oldCat);
-      if (!newCat || newCat === oldCat) return;
-      const q = query(collection(db, 'products'), where('category', '==', oldCat));
-      const snapshot = await getDocs(q);
-      const batch = writeBatch(db);
-      snapshot.forEach(docSnap => batch.update(docSnap.ref, { category: newCat }));
-      await batch.commit();
-      loadProducts();
-    };
-
-    loadProducts();
-
-    // Dropdown logic
     window.toggleDropdown = function () {
       const menu = document.getElementById('dropdown-menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.logout = function () {
+      alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
+      window.location.href = "login.html";
     };
 
     window.addEventListener('click', function (e) {
@@ -302,6 +315,8 @@
         menu.style.display = 'none';
       }
     });
+
+    loadProducts();
   </script>
 </body>
 </html>
