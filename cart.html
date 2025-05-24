@@ -69,7 +69,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, query, where, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
@@ -105,7 +105,7 @@
       if (
         data.code?.toLowerCase() === code.toLowerCase() &&
         data.status === "active" &&
-        data.used < data.maxUses
+        (data.used || 0) < data.usageLimit
       ) {
         validCoupon = data;
         couponId = docSnap.id;
@@ -126,10 +126,8 @@
       couponDiscount = (subtotal * validCoupon.discount) / 100;
       alert(`${validCoupon.discount}% coupon applied!`);
 
-      await setDoc(doc(db, "coupons", couponId), {
-        ...validCoupon,
-        used: validCoupon.used + 1
-      });
+      const newUsed = (validCoupon.used || 0) + 1;
+      await updateDoc(doc(db, "coupons", couponId), { used: newUsed });
     }
 
     if (!validCoupon && !giftDoc.exists()) {
