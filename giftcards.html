@@ -75,33 +75,49 @@
 
     function addToCart(card) {
       const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+      // Prevent duplicates
+      const exists = cart.find(item => item.id === `gift-${card.code}`);
+      if (exists) {
+        alert("This gift card is already in your cart.");
+        return;
+      }
+
       cart.push({
         id: `gift-${card.code}`,
         name: `Gift Card $${card.amount}`,
         amount: card.amount,
         type: "giftcard",
         image: card.imageUrl || "",
-        note: "",
+        note: `Gift card valid until ${card.expiry}`,
         quantity: 1,
         total: card.amount
       });
+
       localStorage.setItem("cart", JSON.stringify(cart));
       alert(`Gift Card $${card.amount} added to cart`);
     }
 
     async function loadGiftCards() {
       const container = document.getElementById("giftCardsContainer");
+      const today = new Date().toISOString().split("T")[0];
       const snapshot = await db.collection("giftcards").where("used", "==", false).get();
+
       container.innerHTML = '';
+
       snapshot.forEach(doc => {
         const card = doc.data();
+
+        // Skip expired cards
+        if (card.expiry < today) return;
+
         const div = document.createElement("div");
         div.className = "card";
         div.innerHTML = `
           <img src="${card.imageUrl}" alt="Gift Card">
           <h3>$${card.amount} Gift Card</h3>
           <p>Expires on ${card.expiry}</p>
-          <button onclick='addToCart(${JSON.stringify(card)})'>Add to Cart</button>
+          <button onclick='addToCart(${JSON.stringify(card).replace(/'/g, "\\'")})'>Add to Cart</button>
         `;
         container.appendChild(div);
       });
