@@ -70,9 +70,6 @@
       border: 1px solid #ccc;
       margin: 5px 0;
     }
-    select[multiple] {
-      min-height: 100px;
-    }
     .product-item {
       background: #f9f9f9;
       border-radius: 6px;
@@ -128,7 +125,7 @@
     <input type="text" id="name" placeholder="Product Name" required>
     <input type="number" id="price" placeholder="Price" required>
     <input type="text" id="sku" placeholder="SKU" required>
-    <select id="categories" multiple required></select>
+    <select id="category" required><option value="">Select Category</option></select>
     <input type="text" id="imageUrl" placeholder="Image URL" required>
     <textarea id="description" placeholder="Description"></textarea>
     <input type="number" id="stock" placeholder="Stock" required>
@@ -173,7 +170,7 @@ const categoryForm = document.getElementById('category-form');
 const productList = document.getElementById('product-list');
 const categoryList = document.getElementById('category-list');
 const productCount = document.getElementById('product-count');
-const categorySelect = document.getElementById('categories');
+const categorySelect = document.getElementById('category');
 let editingId = null;
 
 form.addEventListener('submit', async (e) => {
@@ -182,7 +179,7 @@ form.addEventListener('submit', async (e) => {
     name: form.name.value,
     price: parseFloat(form.price.value),
     sku: form.sku.value,
-    categories: Array.from(form.categories.selectedOptions).map(opt => opt.value),
+    category: form.category.value,
     imageUrl: form.imageUrl.value,
     description: form.description.value,
     stock: parseInt(form.stock.value),
@@ -223,7 +220,7 @@ async function loadProducts() {
     item.className = 'product-item';
     item.innerHTML = `
       <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
-        <strong>${data.name}</strong> (${(data.categories || []).join(', ')})
+        <strong>${data.name}</strong> (${data.category})
       </div>
       <div class="product-details">
         <p>Price: $${data.price}</p>
@@ -243,7 +240,7 @@ async function loadProducts() {
 
 async function loadCategories() {
   categoryList.innerHTML = '';
-  categorySelect.innerHTML = '';
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
   const catSnapshot = await getDocs(collection(db, 'categories'));
   catSnapshot.forEach(docSnap => {
     const data = docSnap.data();
@@ -267,14 +264,12 @@ window.editProduct = (id, data) => {
   form.name.value = data.name;
   form.price.value = data.price;
   form.sku.value = data.sku;
+  form.category.value = data.category;
   form.imageUrl.value = data.imageUrl;
   form.description.value = data.description;
   form.stock.value = data.stock;
   form.isFeatured.checked = data.isFeatured;
   form.isBoxEligible.checked = data.isBoxEligible;
-  Array.from(form.categories.options).forEach(opt => {
-    opt.selected = data.categories?.includes(opt.value);
-  });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
