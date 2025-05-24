@@ -136,6 +136,15 @@
     // ✅ Generate unique order ID
     const orderId = 'TNBOX-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // ✅ Ensure SKU and note are carried over from cart
+    const itemsWithDetails = cart.map(i => ({
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity || 1,
+      sku: i.sku || '',
+      note: i.note || ''
+    }));
+
     const order = {
       orderId,
       firstName: form["First Name"].value,
@@ -157,7 +166,7 @@
       tax: checkoutData.tax,
       subtotal: checkoutData.subtotal,
       total: checkoutData.total,
-      items: cart,
+      items: itemsWithDetails,
       createdAt: new Date().toISOString(),
       status: 'Pending'
     };
@@ -171,18 +180,17 @@
         localStorage.removeItem('abandoned_cart_id');
       }
 
-      // ✅ Save to email + thank-you page
       document.getElementById('email-order-id').value = orderId;
       localStorage.setItem('lastOrderId', orderId);
 
-      const summary = cart.map(i =>
-        `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)} - SKU: ${i.sku || 'N/A'}`
+      const summary = itemsWithDetails.map(i =>
+        `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)} - SKU: ${i.sku || 'N/A'}${i.note ? ' - Note: ' + i.note : ''}`
       ).join('\n');
 
       document.getElementById('email-summary').value =
         summary + `\n\nTotal: $${checkoutData.total.toFixed(2)}\nPayment Method: Cash on Delivery`;
 
-      form.submit(); // send via FormSubmit
+      form.submit();
 
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
