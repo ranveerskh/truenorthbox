@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Coupon Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coupon Admin - True North Box</title>
   <style>
-    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    h2, h3 { text-align: center; }
-    input, button, select { padding: 10px; margin: 5px 0; width: 100%; }
-    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    input, button, select { width: 100%; padding: 10px; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     .inactive { background: #eee; color: #888; }
   </style>
 </head>
@@ -42,12 +43,12 @@
     import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_BUCKET",
-      messagingSenderId: "YOUR_MSG_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.appspot.com",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -59,30 +60,36 @@
       const discount = parseFloat(document.getElementById("discount").value);
       const maxUses = parseInt(document.getElementById("maxUses").value);
 
-      if (!code || !discount || !maxUses) {
-        alert("Please fill in all fields.");
+      if (!code || isNaN(discount) || isNaN(maxUses)) {
+        alert("Please fill in all fields correctly.");
         return;
       }
 
-      await addDoc(couponsRef, {
-        code,
-        discount,
-        maxUses,
-        used: 0,
-        status: "active",
-        createdAt: new Date()
-      });
-
-      document.getElementById("code").value = "";
-      document.getElementById("discount").value = "";
-      document.getElementById("maxUses").value = "";
-      fetchCoupons();
+      try {
+        await addDoc(couponsRef, {
+          code: code.toUpperCase(),
+          discount,
+          maxUses,
+          used: 0,
+          status: "active",
+          createdAt: new Date().toISOString()
+        });
+        alert("Coupon created successfully!");
+        document.getElementById("code").value = "";
+        document.getElementById("discount").value = "";
+        document.getElementById("maxUses").value = "";
+        fetchCoupons();
+      } catch (error) {
+        console.error("Error adding coupon:", error);
+        alert("Failed to add coupon.");
+      }
     }
 
     async function fetchCoupons() {
       const snapshot = await getDocs(couponsRef);
       const list = document.getElementById("couponList");
       list.innerHTML = "";
+
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         const row = document.createElement("tr");
@@ -107,20 +114,20 @@
       });
     }
 
-    async function updateField(id, field, value) {
+    window.updateField = async (id, field, value) => {
       const ref = doc(db, "coupons", id);
       const update = {};
       update[field] = field === "discount" || field === "maxUses" ? Number(value) : value;
       await updateDoc(ref, update);
       fetchCoupons();
-    }
+    };
 
-    async function deleteCoupon(id) {
+    window.deleteCoupon = async (id) => {
       if (confirm("Delete this coupon?")) {
         await deleteDoc(doc(db, "coupons", id));
         fetchCoupons();
       }
-    }
+    };
 
     fetchCoupons();
   </script>
