@@ -131,6 +131,25 @@
     .actions button:hover {
       background: #276749;
     }
+
+    .category-list {
+      margin-top: 20px;
+    }
+
+    .category-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f1f1;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .category-item input {
+      flex: 1;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -171,6 +190,15 @@
 </div>
 
 <div class="container">
+  <h2>Manage Categories</h2>
+  <form id="category-form">
+    <input type="text" id="new-category" placeholder="Add new category">
+    <button type="button" onclick="addCategory()">Add Category</button>
+  </form>
+  <div class="category-list" id="category-list"></div>
+</div>
+
+<div class="container">
   <h2>Existing Products (<span id="product-count">0</span>)</h2>
   <div class="filter-bar">
     <label>Filter by Category:
@@ -182,7 +210,141 @@
   <div id="product-list"></div>
 </div>
 
-<script>
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where
+    } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+      authDomain: "truenrothbox.firebaseapp.com",
+      projectId: "truenrothbox",
+      storageBucket: "truenrothbox.appspot.com",
+      messagingSenderId: "103087965950",
+      appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.getElementById('product-form');
+    const productList = document.getElementById('product-list');
+    const productCount = document.getElementById('product-count');
+    const categoryFilter = document.getElementById('filter-category');
+    let editingId = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        name: form.name.value,
+        price: parseFloat(form.price.value),
+        sku: form.sku.value,
+        category: form.category.value,
+        imageUrl: form.imageUrl.value,
+        description: form.description.value,
+        stock: parseInt(form.stock.value),
+        isFeatured: form.isFeatured.checked,
+        isBoxEligible: form.isBoxEligible.checked
+      };
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), data);
+          editingId = null;
+        } else {
+          await addDoc(collection(db, 'products'), data);
+        }
+        form.reset();
+        loadProducts();
+      } catch (error) {
+        alert("Error saving product: " + error.message);
+      }
+    });
+
+    categoryFilter.addEventListener('change', loadProducts);
+
+    async function loadProducts() {
+      productList.innerHTML = '';
+      const snapshot = await getDocs(collection(db, 'products'));
+      const categories = new Set();
+      let count = 0;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        categories.add(data.category);
+        const selected = categoryFilter.value;
+        if (selected && selected !== data.category) return;
+
+        count++;
+        const item = document.createElement('div');
+        item.className = 'product-item';
+        item.innerHTML = `
+          <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+            <strong>${data.name}</strong> (${data.category})
+          </div>
+          <div class="product-details">
+            <p>Price: $${data.price}</p>
+            <p>SKU: ${data.sku}</p>
+            <p>Stock: ${data.stock}</p>
+            <p><img src="${data.imageUrl}" width="80"/></p>
+            <div class="actions">
+              <button onclick='editProduct("${docSnap.id}", ${JSON.stringify(data).replace(/"/g, '&quot;')})'>Edit</button>
+              <button onclick='deleteProduct("${docSnap.id}")'>Delete</button>
+            </div>
+          </div>
+        `;
+        productList.appendChild(item);
+      });
+
+      productCount.textContent = count;
+
+      // Populate category filter
+      categoryFilter.innerHTML = '<option value="">All</option>';
+      [...categories].forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categoryFilter.appendChild(opt);
+      });
+    }
+
+    window.editProduct = (id, data) => {
+      editingId = id;
+      form.name.value = data.name;
+      form.price.value = data.price;
+      form.sku.value = data.sku;
+      form.category.value = data.category;
+      form.imageUrl.value = data.imageUrl;
+      form.description.value = data.description;
+      form.stock.value = data.stock;
+      form.isFeatured.checked = data.isFeatured;
+      form.isBoxEligible.checked = data.isBoxEligible;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteProduct = async (id) => {
+      await deleteDoc(doc(db, 'products', id));
+      loadProducts();
+    };
+
+    window.toggleDropdown = function () {
+      const menu = document.getElementById('dropdown-menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.logout = function () {
+      alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
+      window.location.href = "login.html";
+    };
+
+    window.addEventListener('click', function (e) {
+      const menu = document.getElementById('dropdown-menu');
+      if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
+        menu.style.display = 'none';
+      }
+    });
+
+    loadProducts();
   // JavaScript continues here — will be enhanced to support multiple categories and category management
 </script>
 
