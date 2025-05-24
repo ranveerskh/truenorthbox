@@ -69,6 +69,7 @@
     <input type="hidden" name="_captcha" value="false">
     <input type="hidden" name="_next" value="https://truenorthbox.com/thank-you.html">
     <input type="hidden" name="_cc" id="cc-email">
+    <input type="hidden" name="Order ID" id="email-order-id">
     <input type="hidden" name="Order Summary" id="email-summary">
 
     <input type="text" id="firstName" name="First Name" placeholder="First Name" required />
@@ -121,19 +122,22 @@
     `;
   }
 
-  // Save email and sync to hidden field
   document.getElementById('email').addEventListener('input', e => {
     localStorage.setItem('email', e.target.value);
     document.getElementById('cc-email').value = e.target.value;
   });
 
-  // Submit order to Firebase and email
   document.getElementById('orderForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     if (cart.length === 0 || !checkoutData) return alert('Missing cart or shipping data.');
 
     const form = e.target;
+
+    // ✅ Generate unique order ID
+    const orderId = 'TNBOX-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
     const order = {
+      orderId,
       firstName: form["First Name"].value,
       lastName: form["Last Name"].value,
       email: form["Customer Email"].value,
@@ -167,7 +171,10 @@
         localStorage.removeItem('abandoned_cart_id');
       }
 
-      // Prepare summary for email
+      // ✅ Save to email + thank-you page
+      document.getElementById('email-order-id').value = orderId;
+      localStorage.setItem('lastOrderId', orderId);
+
       const summary = cart.map(i =>
         `${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)} - SKU: ${i.sku || 'N/A'}`
       ).join('\n');
@@ -175,7 +182,7 @@
       document.getElementById('email-summary').value =
         summary + `\n\nTotal: $${checkoutData.total.toFixed(2)}\nPayment Method: Cash on Delivery`;
 
-      form.submit(); // finally send email via FormSubmit
+      form.submit(); // send via FormSubmit
 
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
