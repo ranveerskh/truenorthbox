@@ -345,6 +345,97 @@
     });
 
     loadProducts();
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe6sUwdJ292z-GKKLGjyOEmgjr4OiKR8w",
+    authDomain: "truenrothbox.firebaseapp.com",
+    projectId: "truenrothbox",
+    storageBucket: "truenrothbox.appspot.com",
+    messagingSenderId: "103087965950",
+    appId: "1:103087965950:web:cc552e40fc69a3d29047af"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const categorySelect = document.getElementById('category');
+  const filterCategory = document.getElementById('filter-category');
+  const categoryList = document.getElementById('category-list');
+
+  const loadCategories = async () => {
+    const snapshot = await getDocs(collection(db, 'categories'));
+    categorySelect.innerHTML = '';
+    filterCategory.innerHTML = '<option value="">All</option>';
+    categoryList.innerHTML = '';
+
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const id = docSnap.id;
+
+      // Add to product form
+      const opt = document.createElement('option');
+      opt.value = data.name;
+      opt.textContent = data.name;
+      categorySelect.appendChild(opt);
+
+      // Add to filter dropdown
+      const fOpt = document.createElement('option');
+      fOpt.value = data.name;
+      fOpt.textContent = data.name;
+      filterCategory.appendChild(fOpt);
+
+      // Add to editable list
+      const item = document.createElement('div');
+      item.className = 'category-item';
+      item.innerHTML = `
+        <input value="${data.name}" onchange="updateCategory('${id}', this.value)">
+        <button onclick="deleteCategory('${id}')">Delete</button>
+      `;
+      categoryList.appendChild(item);
+    });
+  };
+
+  window.addCategory = async () => {
+    const name = document.getElementById('new-category').value.trim();
+    if (!name) return alert('Please enter a category name.');
+    await addDoc(collection(db, 'categories'), { name });
+    document.getElementById('new-category').value = '';
+    loadCategories();
+  };
+
+  window.updateCategory = async (id, name) => {
+    await updateDoc(doc(db, 'categories', id), { name });
+    loadCategories();
+  };
+
+  window.deleteCategory = async (id) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    await deleteDoc(doc(db, 'categories', id));
+    loadCategories();
+  };
+
+  window.toggleDropdown = function () {
+    const menu = document.getElementById('dropdown-menu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.logout = function () {
+    alert("Logged out! (Hook this to Firebase Auth signOut if needed)");
+    window.location.href = "login.html";
+  };
+
+  window.addEventListener('click', function (e) {
+    const menu = document.getElementById('dropdown-menu');
+    if (!e.target.closest('button') && !e.target.closest('#dropdown-menu')) {
+      menu.style.display = 'none';
+    }
+  });
+
+  loadCategories();
   // JavaScript continues here — will be enhanced to support multiple categories and category management
 </script>
 
